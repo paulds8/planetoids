@@ -24,7 +24,7 @@ class Planetoid(object):
                  component1_field,
                  component2_field,
                  cluster_field,
-                 ecology):
+                 ecology = 'gist_earth'):
         
         self.data = None
         self.component1_field = None
