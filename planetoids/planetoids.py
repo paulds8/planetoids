@@ -393,5 +393,6 @@ class Planetoid(object):
             
     
     def fit_terraform(self, plot_topography=True, plot_points=True, render=True):
+        """Fit and terraform in a single step, akin to fit_transform people are used to"""
         self.fit()
         self.terraform(plot_topography, plot_points, render)
