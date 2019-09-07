@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import scipy.stats as st
+from tqdm import tqdm
 from sklearn.datasets import load_digits
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from shapely.geometry import asPoint
@@ -71,8 +72,8 @@ class Planetoid(object):
         lat_scaler = MinMaxScaler(feature_range=(-80, 80))
         long_scaler = MinMaxScaler(feature_range=(-170, 170))
 
-        self.data['Latitude'] = lat_scaler.fit_transform(self.data[self.component1_field].reshape(-1, 1)).reshape(-1)
-        self.data['Longitude'] = long_scaler.fit_transform(self.data[self.component2_field].reshape(-1, 1)).reshape(-1)
+        self.data['Latitude'] = lat_scaler.fit_transform(self.data[self.component1_field].values.reshape(-1, 1)).reshape(-1)
+        self.data['Longitude'] = long_scaler.fit_transform(self.data[self.component2_field].values.reshape(-1, 1)).reshape(-1)
 
         # self.data.plot(kind='scatter',
         #                 x='Longitude',
@@ -84,7 +85,7 @@ class Planetoid(object):
     
     def get_contour_verts(self, cn):
         """Get the vertices from the mpl plot to generate our own geometries"""
-        contours = []
+        cntr = []
         # for each contour line
         for cc in cn.collections:
             paths = []
@@ -95,15 +96,15 @@ class Planetoid(object):
                 for vv in pp.iter_segments():
                     xy.append(vv[0])
                 paths.append(np.vstack(xy))
-            contours.append(paths)
+            cntr.append(paths)
 
-        return contours
+        return cntr
 
 
-    def get_contours(self):
+    def get_contours(self, subset):
         """Generate contour lines based on density of points per cluster/class"""
-        y=self.data['Latitude'].values
-        x=self.data['Longitude'].values
+        y=subset['Latitude'].values
+        x=subset['Longitude'].values
 
         # Define the borders
         deltaX = (max(x) - min(x))/10
@@ -129,19 +130,19 @@ class Planetoid(object):
         ax.imshow(np.rot90(f), cmap='coolwarm', extent=[-180, 180, -90, 90])
         cset = ax.contour(xx, yy, f, colors='k', levels=20,)
         
-        contours = get_contour_verts(cset)
+        cntrs = self.get_contour_verts(cset)
         plt.close(fig)
-        return contours
+        return cntrs
 
 
     def get_all_contours(self):
         """Get all of the contours per class"""
-        contours = {}
-        for cluster in np.unique(self['Cluster'].values):
+        cntrs = {}
+        for cluster in tqdm(np.unique(self.data['Cluster'].values)):
             points_df = self.data.loc[self.data['Cluster'] == cluster, ['Longitude', 'Latitude']]
-            contours[cluster] = get_contours()
+            cntrs[cluster] = self.get_contours(points_df)
         
-        self.contours = contours
+        self.contours = cntrs
         
         
     def fit(self):
@@ -192,7 +193,7 @@ class Planetoid(object):
     def plot_contours(self):
         """Plot the topography"""
         #globe
-        for cluster, contour in self.contours.items():
+        for cluster, contour in tqdm(self.contours.items()):
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
                 if len(line) > 0 and ix > 3:
@@ -205,10 +206,10 @@ class Planetoid(object):
                                     hoverinfo='skip',
                                     mode='lines',
                                     line=dict(width=0,
-                                            color='rgb' + str(cmap(ix/self.max_contour, bytes=True)[0:3])
+                                            color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])
                                             ),
                                     fill='toself',
-                                    fillcolor = 'rgb' + str(cmap(ix/self.max_contour, bytes=True)[0:3]),
+                                    fillcolor = 'rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3]),
                                     opacity=1,
                                     showlegend=False,
                                     ),row=1,col=1)
@@ -221,26 +222,26 @@ class Planetoid(object):
                                     mode='lines',
                                     line=dict(width=0, #*np.power(np.exp(ix/max_contour),2),
                                             #dash='longdashdot',
-                                            color='rgb' + str(cmap(ix/self.max_contour, bytes=True)[0:3])),
+                                            color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])),
                                     opacity=1,
                                     showlegend=False
                                     ),row=1,col=1)
                             
         #flat
-        for cluster, contour in contours.items():
+        for cluster, contour in self.contours.items():
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
                 if len(line) > 0 and ix > 3:
                     for l in line:
                         if ix % 5 == 0:
-                            fig.add_trace(
+                            self.fig.add_trace(
                                 go.Scattergeo(
                                     lon = list(l[:, 0]),
                                     lat = list(l[:, 1]),
                                     hoverinfo='skip',
                                     mode='lines',
                                     line=dict(width=0.5,
-                                              color='rgb' + str(tuple(list(cmap(ix/len(contour), bytes=True)[0:3]) + [0.5]))
+                                              color='rgb' + str(tuple(list(self.cmap(ix/len(contour), bytes=True)[0:3]) + [0.5]))
                                               ),
                                     fill='toself',
                                     showlegend=False,
@@ -372,9 +373,9 @@ class Planetoid(object):
         
         #identify the maximum number of contours per continent
         self.max_contour = max([len(contour) for contour in self.contours.values()])
-        self.cmap = cm.get_cmap(self.ecology, max_contour)
+        self.cmap = cm.get_cmap(self.ecology, self.max_contour)
         
-        self.ocean_colour = 'rgb' + str(cmap(3/max_contour, bytes=True)[0:3])
+        self.ocean_colour = 'rgb' + str(self.cmap(3/self.max_contour, bytes=True)[0:3])
         
         self.plot_surface()
 
