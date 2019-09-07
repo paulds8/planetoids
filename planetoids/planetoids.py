@@ -2,20 +2,21 @@ import numpy as np
 import pandas as pd
 import umap
 import pyproj #pip install pyproj==2.2.1 --no-cache-dir
-from sklearn.datasets import load_digits
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import scipy.stats as st
+from sklearn.datasets import load_digits
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from shapely.geometry import asPoint
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
 from shapely.geometry import MultiPoint
 from shapely.ops import transform
 from functools import partial
-import scipy.stats as st
 from scipy.spatial import Delaunay
 from functools import reduce
+from plotly.subplots import make_subplots
 
 class Planetoid(object):
     def __init__(self, data, component1_field, component2_field, cluster_field):
@@ -44,6 +45,7 @@ class Planetoid(object):
 
 
     def rescale_coordinates(self):
+        """Rescale provided components as pseudo latitudes and longitudes"""
         #trying to prevent issues at the extremes
         lat_scaler = MinMaxScaler(feature_range=(-80, 80))
         long_scaler = MinMaxScaler(feature_range=(-170, 170))
@@ -112,10 +114,17 @@ class Planetoid(object):
 
 
     def get_all_contours(self):
+        """Get all of the contours per class"""
         contours = {}
         for cluster in np.unique(self['Cluster'].values):
-            # Filter out the cluster points
             points_df = self.data.loc[self.data['Cluster'] == cluster, ['Longitude', 'Latitude']]
             contours[cluster] = get_contours(points_df)
         
         self.contours = contours
+        
+        
+    def fit(self):
+        #transform 2d components into pseudo lat/longs
+        self.rescale_coordinates()
+        #generate contours per class
+        self.get_all_contours()
