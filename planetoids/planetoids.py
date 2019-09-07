@@ -71,8 +71,8 @@ class Planetoid(object):
         lat_scaler = MinMaxScaler(feature_range=(-80, 80))
         long_scaler = MinMaxScaler(feature_range=(-170, 170))
 
-        self.data['Latitude'] = lat_scaler.fit_transform(self.data[self.com].reshape(-1, 1)).reshape(-1)
-        self.data['Longitude'] = long_scaler.fit_transform(self.data[:,1].reshape(-1, 1)).reshape(-1)
+        self.data['Latitude'] = lat_scaler.fit_transform(self.data[self.component1_field].reshape(-1, 1)).reshape(-1)
+        self.data['Longitude'] = long_scaler.fit_transform(self.data[self.component2_field].reshape(-1, 1)).reshape(-1)
 
         # self.data.plot(kind='scatter',
         #                 x='Longitude',
