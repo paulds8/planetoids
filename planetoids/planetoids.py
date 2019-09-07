@@ -345,7 +345,7 @@ class Planetoid(object):
         
     
     def update_layout(self):
-        
+        """Update layout config"""
         self.fig.update_layout(
             autosize=True,
             width=int(1920/2),
@@ -390,3 +390,8 @@ class Planetoid(object):
 
         if render:
             self.fig.show()
+            
+    
+    def fit_terraform(self, plot_topography=True, plot_points=True, render=True):
+        self.fit()
+        self.terraform(plot_topography, plot_points, render)
