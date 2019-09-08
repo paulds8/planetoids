@@ -101,8 +101,12 @@ class Planetoid(object):
         return cntr
 
 
-    def get_contours(self, subset):
+    def get_contours(self, subset, topography_levels):
         """Generate contour lines based on density of points per cluster/class"""
+        
+        #adding 3 since we throw away a few of the early contours in the plotting function at the moment
+        topography_levels += 3
+        
         y=subset['Latitude'].values
         x=subset['Longitude'].values
 
@@ -128,29 +132,29 @@ class Planetoid(object):
         ax.set_ylim(ymin, ymax)
         #cfset = ax.contourf(xx, yy, f, cmap='coolwarm')
         ax.imshow(np.rot90(f), cmap='coolwarm', extent=[-180, 180, -90, 90])
-        cset = ax.contour(xx, yy, f, colors='k', levels=20,)
+        cset = ax.contour(xx, yy, f, colors='k', levels=topography_levels,)
         
         cntrs = self.get_contour_verts(cset)
         plt.close(fig)
         return cntrs
 
 
-    def get_all_contours(self):
+    def get_all_contours(self, topography_levels=20):
         """Get all of the contours per class"""
         cntrs = {}
         for cluster in tqdm(np.unique(self.data['Cluster'].values)):
             points_df = self.data.loc[self.data['Cluster'] == cluster, ['Longitude', 'Latitude']]
-            cntrs[cluster] = self.get_contours(points_df)
+            cntrs[cluster] = self.get_contours(points_df, topography_levels)
         
         self.contours = cntrs
         
         
-    def fit(self):
+    def fit(self, topography_levels=20):
         """Generate data required for terraforming"""
         #transform 2d components into pseudo lat/longs
         self.rescale_coordinates()
         #generate contours per class
-        self.get_all_contours()
+        self.get_all_contours(topography_levels)
         
     
     def plot_surface(self):
@@ -233,7 +237,7 @@ class Planetoid(object):
                 #need to update this to actually check for contours that form polygons
                 if len(line) > 0 and ix > 3:
                     for l in line:
-                        if ix % 5 == 0:
+                        if ix % 4 == 0:
                             self.fig.add_trace(
                                 go.Scattergeo(
                                     lon = list(l[:, 0]),
@@ -393,7 +397,7 @@ class Planetoid(object):
             self.fig.show()
             
     
-    def fit_terraform(self, plot_topography=True, plot_points=True, render=True):
+    def fit_terraform(self, topography_levels=20, plot_topography=True, plot_points=True, render=True):
         """Fit and terraform in a single step, akin to fit_transform people are used to"""
-        self.fit()
+        self.fit(topography_levels=topography_levels)
         self.terraform(plot_topography, plot_points, render)
