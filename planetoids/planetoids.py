@@ -103,23 +103,22 @@ class Planetoid(object):
 
     def get_contours(self, subset, topography_levels):
         """Generate contour lines based on density of points per cluster/class"""
-        
-        #adding 3 since we throw away a few of the early contours in the plotting function at the moment
-        topography_levels += 3
+                
+        topography_levels += 5
         
         y=subset['Latitude'].values
         x=subset['Longitude'].values
 
         # Define the borders
-        deltaX = (max(x) - min(x))/10
-        deltaY = (max(y) - min(y))/10
-        xmin = min(x) - deltaX
-        xmax = max(x) + deltaX
-        ymin = min(y) - deltaY
-        ymax = max(y) + deltaY
-        #print(xmin, xmax, ymin, ymax)
+        deltaX = (max(x) - min(x))/3
+        deltaY = (max(y) - min(y))/3
+        xmin = max(-180, min(x) - deltaX)
+        xmax = min(180, max(x) + deltaX)
+        ymin = max(-90, min(y) - deltaY)
+        ymax = min(90, max(y) + deltaY)
+        print(xmin, xmax, ymin, ymax)
         # Create meshgrid
-        xx, yy = np.mgrid[xmin:xmax:300j, ymin:ymax:300j]
+        xx, yy = np.mgrid[xmin:xmax:(10*topography_levels + 1j), ymin:ymax:(10*topography_levels + 1j)]
 
         positions = np.vstack([xx.ravel(), yy.ravel()])
         values = np.vstack([x, y])
@@ -132,7 +131,7 @@ class Planetoid(object):
         ax.set_ylim(ymin, ymax)
         #cfset = ax.contourf(xx, yy, f, cmap='coolwarm')
         ax.imshow(np.rot90(f), cmap='coolwarm', extent=[-180, 180, -90, 90])
-        cset = ax.contour(xx, yy, f, colors='k', levels=topography_levels,)
+        cset = ax.contour(xx, yy, f, colors='k', levels=topography_levels, )
         
         cntrs = self.get_contour_verts(cset)
         plt.close(fig)
@@ -200,9 +199,9 @@ class Planetoid(object):
         for cluster, contour in tqdm(self.contours.items()):
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > 3:
-                    for l in line:
-                        if ix % 2 == 0:
+                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
+                    if ix % 1 == 0:
+                        for l in line:
                             self.fig.add_trace(
                                 go.Scattergeo(
                                     lon = list(l[:, 0]),
@@ -217,27 +216,27 @@ class Planetoid(object):
                                     opacity=1,
                                     showlegend=False,
                                     ),row=1,col=1)
-                        else:                    
-                            self.fig.add_trace(
-                                go.Scattergeo(
-                                    lon = list(l[:, 0]),
-                                    lat = list(l[:, 1]),
-                                    hoverinfo='skip',
-                                    mode='lines',
-                                    line=dict(width=0, #*np.power(np.exp(ix/max_contour),2),
-                                            #dash='longdashdot',
-                                            color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])),
-                                    opacity=1,
-                                    showlegend=False
-                                    ),row=1,col=1)
+                        # else:                    
+                        #     self.fig.add_trace(
+                        #         go.Scattergeo(
+                        #             lon = list(l[:, 0]),
+                        #             lat = list(l[:, 1]),
+                        #             hoverinfo='skip',
+                        #             mode='lines',
+                        #             line=dict(width=0, #*np.power(np.exp(ix/max_contour),2),
+                        #                     #dash='longdashdot',
+                        #                     color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])),
+                        #             opacity=1,
+                        #             showlegend=False
+                        #             ),row=1,col=1)
                             
         #flat
         for cluster, contour in self.contours.items():
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > 3:
+                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
                     for l in line:
-                        if ix % 4 == 0:
+                        if ix % 3 == 0:
                             self.fig.add_trace(
                                 go.Scattergeo(
                                     lon = list(l[:, 0]),
