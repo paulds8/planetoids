@@ -66,6 +66,7 @@ class Planetoid(object):
         self.cmap = None
         self.max_contour = None
         self.shadows = list()
+        self.light_side = list()
 
 
     def rescale_coordinates(self):
@@ -141,6 +142,7 @@ class Planetoid(object):
         plt.close(fig)
         
         self.generate_hillshade_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, shadow_levels)
+        self.generate_lightside_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, shadow_levels)
         
         return cntrs
     
@@ -180,8 +182,55 @@ class Planetoid(object):
                     and xmax not in x_loc\
                     and ymin not in y_loc\
                     and ymax not in y_loc:
-                    cluster_shadows.append(list(zip(x_loc + [x_loc[0]], y_loc + [y_loc[0]])))     
+                        coords = list(zip(x_loc + [x_loc[0]], y_loc + [y_loc[0]]))
+                        if len(coords) > 3:
+                            #attempt some smoothing
+                            coords = list(asPolygon(coords).buffer(1, join_style=1).buffer(-1, join_style=1).exterior.coords)
+                            cluster_shadows.append(coords)       
         self.shadows.append(cluster_shadows)
+        
+        
+    def generate_lightside_polygons(self, hillshade, xx, yy, xmin, xmax, ymin, ymax, shadow_levels):
+        
+        #self.shadows = list()
+        
+        #we have to strech it for the opencv function to catch the edges properly
+        hs_array = (hillshade - hillshade.min())/(hillshade.max()-hillshade.min()) * 255
+        hist, bin_edges = np.histogram(hs_array, bins=shadow_levels+5) #add some since we toss many of these away currently
+        #bin_centers = 0.5*(bin_edges[:-1] + bin_edges[1:])
+        
+        #still need to refine this, but this piece here should help catch only the 'light side'
+        bin_edges = [x for x in bin_edges if x > 10 and x <= 84]
+
+        light_side = []
+        for b in list(zip(bin_edges[:-1], bin_edges[1:])):
+            hs_array_binary_slice = hs_array.copy()
+            hs_array_binary_slice[(hs_array_binary_slice<b[0]) & (hs_array_binary_slice != 1)] = 0
+            hs_array_binary_slice[(hs_array_binary_slice>=b[0]) & (hs_array_binary_slice<b[1])] = 1
+            #hs_array_binary_slice[(hs_array_binary_slice>=b[1]) & (hs_array_binary_slice != 1)] = 0
+            
+            hs_array_binary_slice = np.flipud(hs_array_binary_slice)
+            hs_array_binary_slice = hs_array_binary_slice.astype(np.uint8)  
+
+            #plt.imshow(hs_array_binary_slice,cmap='Greys', extent=[xmin, xmax, ymin, ymax])
+            #plt.show()
+            
+            contours, hierarchy = cv.findContours(hs_array_binary_slice.copy(), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+            for cntr in contours:
+                x_loc = [xx[pair[0][0], pair[0][1]] for pair in cntr]
+                y_loc = [yy[pair[0][0], pair[0][1]] for pair in cntr]
+                
+                #get rid of polygons that touch the bondary of the calculated extent
+                if xmin not in x_loc\
+                    and xmax not in x_loc\
+                    and ymin not in y_loc\
+                    and ymax not in y_loc:
+                        coords = list(zip(x_loc + [x_loc[0]], y_loc + [y_loc[0]]))
+                        if len(coords) > 3:
+                            #attempt some smoothing
+                            coords = list(asPolygon(coords).buffer(1, join_style=1).buffer(-1, join_style=1).exterior.coords)
+                            light_side.append(coords)
+        self.light_side.append(light_side)
         
         
         # #plot
@@ -299,6 +348,49 @@ class Planetoid(object):
                                     ),
                             fill='toself',
                             fillcolor = 'black',
+                            opacity=0.1,
+                            showlegend=False,
+                            ),row=2,col=1)
+                    
+                    
+    def plot_light_side(self):
+        """Plot the hillshade-derived shadows"""
+        #globe
+        for cluster in tqdm(self.light_side):
+            for ix, shadow in enumerate(cluster):
+                if ix % 2:
+                    shadow_array = np.array(shadow)
+                    self.fig.add_trace(
+                        go.Scattergeo(
+                            lon = list(shadow_array[:, 0]),
+                            lat = list(shadow_array[:, 1]),
+                            hoverinfo='skip',
+                            mode='lines',
+                            line=dict(width=0,
+                                    color='red'
+                                    ),
+                            fill='toself',
+                            fillcolor = 'white',
+                            opacity=0.1,
+                            showlegend=False,
+                            ),row=1,col=1)
+                    
+        #flat
+        for cluster in tqdm(self.light_side):
+            for ix, shadow in enumerate(cluster):
+                if ix % 3:
+                    shadow_array = np.array(shadow)
+                    self.fig.add_trace(
+                        go.Scattergeo(
+                            lon = list(shadow_array[:, 0]),
+                            lat = list(shadow_array[:, 1]),
+                            hoverinfo='skip',
+                            mode='lines',
+                            line=dict(width=0,
+                                    color='red'
+                                    ),
+                            fill='toself',
+                            fillcolor = 'white',
                             opacity=0.1,
                             showlegend=False,
                             ),row=2,col=1)
@@ -498,6 +590,7 @@ class Planetoid(object):
             
         if shadows:
             self.plot_shadows()
+            self.plot_light_side()
             
         if points:
             self.plot_clustered_points()
