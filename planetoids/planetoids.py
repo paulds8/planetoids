@@ -99,12 +99,13 @@ class Planetoid(object):
                 for vv in pp.iter_segments():
                     xy.append(vv[0])
                 paths.append(np.vstack(xy))
+                
             cntr.append(paths)
 
         return cntr
+    
 
-
-    def get_contours(self, subset, topography_levels, shadow_levels):
+    def get_contours(self, subset, topography_levels, lighting_levels):
         """Generate contour lines based on density of points per cluster/class"""
                 
         topography_levels += 5
@@ -125,10 +126,12 @@ class Planetoid(object):
 
         positions = np.vstack([xx.ravel(), yy.ravel()])
         values = np.vstack([x, y])
-        kernel = st.gaussian_kde(values, bw_method='silverman')
+        kernel = st.gaussian_kde(values)
+        #an attempt at adding slightly more detail to the relief
+        kernel.set_bandwidth(bw_method=kernel.factor / 1.2)
         f = np.reshape(kernel(positions).T, xx.shape)
         
-        hillshade = np.rot90(self.calculate_hillshade(f, 315, 45))
+        hillshade = self.calculate_hillshade(np.rot90(f), 315, 45)
 
         fig = plt.figure(figsize=(8,8))
         ax = fig.gca()
@@ -139,25 +142,26 @@ class Planetoid(object):
         cset = ax.contour(xx, yy, f, colors='k', levels=topography_levels, )
         
         cntrs = self.get_contour_verts(cset)
+        
         plt.close(fig)
         
-        self.generate_hillshade_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, shadow_levels)
-        self.generate_lightside_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, shadow_levels)
+        self.generate_hillshade_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
+        self.generate_lighting_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
         
         return cntrs
     
     
-    def generate_hillshade_polygons(self, hillshade, xx, yy, xmin, xmax, ymin, ymax, shadow_levels):
+    def generate_hillshade_polygons(self, hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels):
         
         #self.shadows = list()
         
         #we have to strech it for the opencv function to catch the edges properly
         hs_array = (hillshade - hillshade.min())/(hillshade.max()-hillshade.min()) * 255
-        hist, bin_edges = np.histogram(hs_array, bins=shadow_levels+5) #add some since we toss many of these away currently
+        hist, bin_edges = np.histogram(hs_array, bins=lighting_levels)
         #bin_centers = 0.5*(bin_edges[:-1] + bin_edges[1:])
         
         #still need to refine this, but this piece here should help catch only the shadows and not the 'light side'
-        bin_edges = [x for x in bin_edges if x > 170]
+        bin_edges = [x for x in bin_edges if x > 180]
 
         cluster_shadows = []
         for b in list(zip(bin_edges[:-1], bin_edges[1:])):
@@ -184,23 +188,23 @@ class Planetoid(object):
                     and ymax not in y_loc:
                         coords = list(zip(x_loc + [x_loc[0]], y_loc + [y_loc[0]]))
                         if len(coords) > 3:
-                            #attempt some smoothing
+                            #attempt some smoothing and reorienting of generated polygons
                             coords = list(asPolygon(coords).buffer(1, join_style=1).buffer(-1, join_style=1).exterior.coords)
                             cluster_shadows.append(coords)       
         self.shadows.append(cluster_shadows)
         
         
-    def generate_lightside_polygons(self, hillshade, xx, yy, xmin, xmax, ymin, ymax, shadow_levels):
+    def generate_lighting_polygons(self, hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels):
         
         #self.shadows = list()
         
         #we have to strech it for the opencv function to catch the edges properly
         hs_array = (hillshade - hillshade.min())/(hillshade.max()-hillshade.min()) * 255
-        hist, bin_edges = np.histogram(hs_array, bins=shadow_levels+5) #add some since we toss many of these away currently
+        hist, bin_edges = np.histogram(hs_array, bins=lighting_levels)
         #bin_centers = 0.5*(bin_edges[:-1] + bin_edges[1:])
         
-        #still need to refine this, but this piece here should help catch only the 'light side'
-        bin_edges = [x for x in bin_edges if x > 10 and x <= 84]
+        #still need to refine this, but this piece here should help catch only the 'light side' highlights
+        bin_edges = [x for x in bin_edges if x <= 70]
 
         light_side = []
         for b in list(zip(bin_edges[:-1], bin_edges[1:])):
@@ -242,18 +246,33 @@ class Planetoid(object):
         # plt.show()
 
 
-    def get_all_contours(self, topography_levels=20, shadow_levels=20):
+    def get_all_contours(self, topography_levels=20, lighting_levels=20):
         """Get all of the contours per class"""
         cntrs = {}
         for cluster in tqdm(np.unique(self.data['Cluster'].values)):
             points_df = self.data.loc[self.data['Cluster'] == cluster, ['Longitude', 'Latitude']]
-            cntrs[cluster] = self.get_contours(points_df, topography_levels, shadow_levels)
+            cntrs[cluster] = self.get_contours(points_df, topography_levels, lighting_levels)
         
         self.contours = cntrs
+        self.clean_all_contours()
+        
+    
+    def clean_all_contours(self):  
+        """Use Shapely to modify the contours to prevent the case where Plotly fills the inverted section instead"""
+        for cluster, contour in self.contours.items():
+            for ix, line in enumerate(contour):
+                for il, l in enumerate(line):         
+                    self.contours[cluster][ix][il] = np.array(asPolygon(l).buffer(0.5, join_style=1).buffer(-0.5, join_style=1).exterior.coords)
     
     
     def calculate_hillshade(self, array, azimuth, angle_altitude): 
         """Calculate a hillshade over the generated topography"""
+        
+        #hacky fix for now - need to trace what's making the mirroring necessary
+        azimuth += 180
+        if azimuth >= 360:
+            azimuth = azimuth - 360
+        
         x, y = np.gradient(array)
         slope = np.pi/2. - np.arctan(np.sqrt(x*x + y*y))
         aspect = np.arctan2(-x, y)
@@ -265,12 +284,12 @@ class Planetoid(object):
         return 255*(shaded + 1)/2
     
         
-    def fit(self, topography_levels=20, shadow_levels=20):
+    def fit(self, topography_levels=20, lighting_levels=20):
         """Generate data required for terraforming"""
         #transform 2d components into pseudo lat/longs
         self.rescale_coordinates()
         #generate contours per class
-        self.get_all_contours(topography_levels, shadow_levels)
+        self.get_all_contours(topography_levels, lighting_levels)
         
     
     def plot_surface(self):
@@ -278,10 +297,10 @@ class Planetoid(object):
         #globe
         self.fig.add_trace(
             go.Scattergeo(
-                lon = [179.9,0,0,179.9],
-                lat = [89.9,89.9,0,0],
+                lon = [-179.9,179.9,179.9,-179.9],
+                lat = [89.9,89.9,-89.9,-89.9],
                 mode='lines',
-                line=dict(width=0, color=self.ocean_colour),
+                line=dict(width=1, color=self.ocean_colour),
                 fill='toself',
                 fillcolor = self.ocean_colour,
                 hoverinfo='skip',
@@ -295,10 +314,10 @@ class Planetoid(object):
         #flat
         self.fig.add_trace(
             go.Scattergeo(
-                lon = [179.9,0,0,179.9],
-                lat = [89.9,89.9,0,0],
+                lon = [-179.9,179.9,179.9,-179.9],
+                lat = [89.9,89.9,-89.9,-89.9],
                 mode='lines',
-                line=dict(width=0, color=self.ocean_colour),
+                line=dict(width=1, color=self.ocean_colour),
                 fill='toself',
                 fillcolor = self.ocean_colour,
                 hoverinfo='skip',
@@ -315,7 +334,7 @@ class Planetoid(object):
         #globe
         for cluster in tqdm(self.shadows):
             for ix, shadow in enumerate(cluster):
-                if ix % 2:
+                if ix % 2 == 0:
                     shadow_array = np.array(shadow)
                     self.fig.add_trace(
                         go.Scattergeo(
@@ -335,7 +354,7 @@ class Planetoid(object):
         #flat
         for cluster in tqdm(self.shadows):
             for ix, shadow in enumerate(cluster):
-                if ix % 3:
+                if ix % 2 == 0:
                     shadow_array = np.array(shadow)
                     self.fig.add_trace(
                         go.Scattergeo(
@@ -354,20 +373,20 @@ class Planetoid(object):
                     
                     
     def plot_light_side(self):
-        """Plot the hillshade-derived shadows"""
+        """Plot the hillshade-derived lighting"""
         #globe
         for cluster in tqdm(self.light_side):
-            for ix, shadow in enumerate(cluster):
-                if ix % 2:
-                    shadow_array = np.array(shadow)
+            for ix, lighting in enumerate(cluster):
+                if ix % 2 == 0:
+                    lighting_array = np.array(lighting)
                     self.fig.add_trace(
                         go.Scattergeo(
-                            lon = list(shadow_array[:, 0]),
-                            lat = list(shadow_array[:, 1]),
+                            lon = list(lighting_array[:, 0]),
+                            lat = list(lighting_array[:, 1]),
                             hoverinfo='skip',
                             mode='lines',
                             line=dict(width=0,
-                                    color='red'
+                                    color='white'
                                     ),
                             fill='toself',
                             fillcolor = 'white',
@@ -377,17 +396,17 @@ class Planetoid(object):
                     
         #flat
         for cluster in tqdm(self.light_side):
-            for ix, shadow in enumerate(cluster):
-                if ix % 3:
-                    shadow_array = np.array(shadow)
+            for ix, lighting in enumerate(cluster):
+                if ix % 2 == 0:
+                    lighting_array = np.array(lighting)
                     self.fig.add_trace(
                         go.Scattergeo(
-                            lon = list(shadow_array[:, 0]),
-                            lat = list(shadow_array[:, 1]),
+                            lon = list(lighting_array[:, 0]),
+                            lat = list(lighting_array[:, 1]),
                             hoverinfo='skip',
                             mode='lines',
                             line=dict(width=0,
-                                    color='red'
+                                    color='white'
                                     ),
                             fill='toself',
                             fillcolor = 'white',
@@ -402,7 +421,7 @@ class Planetoid(object):
         for cluster, contour in tqdm(self.contours.items()):
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
+                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 4:
                     if ix % 2 == 0:
                         for l in line:
                             self.fig.add_trace(
@@ -416,61 +435,64 @@ class Planetoid(object):
                                             ),
                                     fill='toself',
                                     fillcolor = 'rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3]),
-                                    opacity=0.95 - (ix * 0.01),
+                                    opacity=0.95, #- (ix * 0.02),
                                     showlegend=False,
                                     ),row=1,col=1)
-                        # else:                    
-                        #     self.fig.add_trace(
-                        #         go.Scattergeo(
-                        #             lon = list(l[:, 0]),
-                        #             lat = list(l[:, 1]),
-                        #             hoverinfo='skip',
-                        #             mode='lines',
-                        #             line=dict(width=0, #*np.power(np.exp(ix/max_contour),2),
-                        #                     #dash='longdashdot',
-                        #                     color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])),
-                        #             opacity=1,
-                        #             showlegend=False
-                        #             ),row=1,col=1)
-                            
-        #flat
-        for cluster, contour in self.contours.items():
-            for ix, line in enumerate(contour):
-                #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
-                    for l in line:
-                        if ix % 3 == 0:
+                    else:    
+                        for l in line:                
                             self.fig.add_trace(
                                 go.Scattergeo(
                                     lon = list(l[:, 0]),
                                     lat = list(l[:, 1]),
                                     hoverinfo='skip',
                                     mode='lines',
-                                    line=dict(width=0.1,
-                                              color='rgb' + str(tuple(list(self.cmap(ix/len(contour), bytes=True)[0:3]) + [0.5]))
+                                    line=dict(width=1, #*np.power(np.exp(ix/max_contour),2),
+                                            dash='longdashdot',
+                                            color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])),
+                                    opacity=0.95,
+                                    showlegend=False
+                                    ),row=1,col=1)
+                            
+        #flat
+        for cluster, contour in self.contours.items():
+            for ix, line in enumerate(contour):
+                #need to update this to actually check for contours that form polygons
+                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 4:
+                    for l in line:
+                        if ix % 2 == 0:
+                            self.fig.add_trace(
+                                go.Scattergeo(
+                                    lon = list(l[:, 0]),
+                                    lat = list(l[:, 1]),
+                                    hoverinfo='skip',
+                                    mode='lines',
+                                    line=dict(width=0,
+                                              color='rgb' + str(tuple(list(self.cmap(ix/len(contour), bytes=True)[0:3])))
                                               ),
                                     fill='toself',
                                     showlegend=False,
-                                    opacity=0.95 - (ix * 0.01)
+                                    opacity=0.95,# - (ix * 0.02)
                                     ),row=2,col=1)
                             
                             
     def plot_clustered_points(self):
         """Plot the provided point data"""
+        
+        #globe
         self.fig.add_trace(go.Scattergeo(
             lon = self.data['Longitude'],
             lat = self.data['Latitude'],
             marker_color=self.data['Cluster'],
             hoverinfo='text',
             hovertext=self.data['Cluster'],
-            marker_size=3,
+            marker_size=2,
             showlegend= False
         #     marker = dict(
         #         symbol='circle-open',
         #      )
             ),row=1,col=1)
 
-        #plot the points - flat
+        #flat
         self.fig.add_trace(go.Scattergeo(
             lon = self.data['Longitude'],
             lat = self.data['Latitude'],
@@ -498,8 +520,7 @@ class Planetoid(object):
             showrivers=False,
             showlakes=False,
             showsubunits=False,
-            #junk='',
-            bgcolor = "black", #changes the whole graph background, but we only want the surface
+            bgcolor = "rgba(0,0,0,0)",
             projection = dict(
                 type = 'orthographic',
                 rotation = dict(
@@ -509,12 +530,12 @@ class Planetoid(object):
                 )
             ),
             lonaxis = dict(
-                showgrid = False,
+                showgrid = True,
                 gridcolor = 'rgb(102, 102, 102)',
                 gridwidth = 1
             ),
             lataxis = dict(
-                showgrid = False,
+                showgrid = True,
                 gridcolor = 'rgb(102, 102, 102)',
                 gridwidth = 1
             ))
@@ -529,8 +550,7 @@ class Planetoid(object):
             showrivers=False,
             showlakes=False,
             showsubunits=False,
-            #junk='',
-            bgcolor = "black", #changes the whole graph background, but we only want the surface
+            bgcolor = "rgba(0,0,0,0)",
             projection = dict(
                 type = 'natural earth',
                 rotation = dict(
@@ -551,21 +571,46 @@ class Planetoid(object):
             ))
         
     
-    def update_layout(self):
+    def update_layout(self, planet_name='Planetoids'):
         """Update layout config"""
+        from PIL import Image
+        
+        width = int(1920/2)
+        height = int(1281/2)
+        
+        image_array = np.random.randint(0, 255, size=(width, height)).astype('uint8')
+        image = Image.fromarray(image_array)
+        
         self.fig.update_layout(
             autosize=True,
-            width=int(1920/2),
-            height=int(1281/2),
-            title_text = 'Planetoids',
+            width=width,
+            height=height,
+            title_text = planet_name,
             showlegend = True,
-            plot_bgcolor = "black",
-            paper_bgcolor = "black",
-            margin=dict(l=20, r=20, t=40, b=20)
+            plot_bgcolor = "rgba(0,0,0,0)",
+            paper_bgcolor = "rgba(0,0,0,0)",
+            margin=dict(l=20, r=20, t=40, b=20),
+            images= [dict(
+                  source= image,
+                  xref= "x",
+                  yref= "y",
+                  x= -20,
+                  y= height,
+                  sizex= width,
+                  sizey= height,
+                  sizing= "stretch",
+                  opacity= 1,
+                  layer= "below")]
+            
         )
     
     
-    def terraform(self, topography=True, points=True, shadows=True, render=True):
+    def terraform(self,
+                  plot_topography=True,
+                  plot_points=True,
+                  plot_lighting=True,
+                  planet_name='Planetoids',
+                  render=True):
         """Construct a new world"""
         
         self.fig = make_subplots(
@@ -585,25 +630,36 @@ class Planetoid(object):
         
         self.plot_surface()
 
-        if topography:
+        if plot_topography:
             self.plot_contours()
             
-        if shadows:
+        if plot_lighting:
             self.plot_shadows()
             self.plot_light_side()
             
-        if points:
+        if plot_points:
             self.plot_clustered_points()
                             
         self.update_geos()
 
-        self.update_layout()
+        self.update_layout(planet_name)
 
         if render:
             self.fig.show()
             
     
-    def fit_terraform(self, topography_levels=20, shadow_levels=20, topography=True, points=True, shadows=True, render=True):
+    def fit_terraform(self,
+                      topography_levels=20,
+                      lighting_levels=20,
+                      plot_topography=True,
+                      plot_points=True,
+                      plot_lighting=True,
+                      planet_name='Planetoids',
+                      render=True):
         """Fit and terraform in a single step, akin to fit_transform people are used to"""
-        self.fit(topography_levels=topography_levels, shadow_levels=shadow_levels)
-        self.terraform(topography, points, shadows, render)
+        self.fit(topography_levels=topography_levels, lighting_levels=lighting_levels)
+        self.terraform(plot_topography, plot_points, plot_lighting, planet_name, render)
+        
+        
+    def save(self):
+        plotly.offline.plot(data, filename='file.html')
