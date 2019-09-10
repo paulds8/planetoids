@@ -121,13 +121,13 @@ class Planetoid(object):
         ymax = min(90, max(y) + deltaY)
         #print(xmin, xmax, ymin, ymax)
         # Create meshgrid
-        xx, yy = np.mgrid[xmin:xmax:(20*topography_levels + 1j), ymin:ymax:(20*topography_levels + 1j)]
+        xx, yy = np.mgrid[xmin:xmax:(30*topography_levels + 1j), ymin:ymax:(30*topography_levels + 1j)]
 
         positions = np.vstack([xx.ravel(), yy.ravel()])
         values = np.vstack([x, y])
         kernel = st.gaussian_kde(values)
         #an attempt at adding slightly more detail to the relief
-        kernel.set_bandwidth(bw_method=kernel.factor / 1.4)
+        kernel.set_bandwidth(bw_method=kernel.factor / 1.5)
         f = np.reshape(kernel(positions).T, xx.shape)
         
         hillshade = self.calculate_hillshade(np.rot90(f), 315, 45)
@@ -261,7 +261,7 @@ class Planetoid(object):
         for cluster, contour in self.contours.items():
             for ix, line in enumerate(contour):
                 for il, l in enumerate(line):         
-                    self.contours[cluster][ix][il] = np.array(asPolygon(l).buffer(0.5, join_style=1).buffer(-0.5, join_style=1).exterior.coords)
+                    self.contours[cluster][ix][il] = np.array(asPolygon(l).buffer(1, join_style=1).buffer(-1, join_style=1).exterior.coords)
     
     
     def calculate_hillshade(self, array, azimuth, angle_altitude): 
@@ -650,9 +650,9 @@ class Planetoid(object):
         
         self.fig = make_subplots(
             rows=4, cols=2, 
-            vertical_spacing=0.01,
-            column_widths=[0.5, 0.5],
-            row_heights=[0.05, 0.67, 0.33, 0.05],
+            vertical_spacing=0.05,
+            #column_widths=[0.5, 0.5],
+            row_heights=[0.05, 0.67, 0.33, 0.02],
             specs=[[None, None],
                    [{"type": "scattergeo", "colspan": 2}, None],
                    [{"type": "scattergeo", "colspan": 2}, None],
