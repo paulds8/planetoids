@@ -8,15 +8,14 @@ import matplotlib.cm as cm
 import scipy.stats as st
 import cv2 as cv
 from tqdm import tqdm
-from sklearn.datasets import load_digits
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from PIL import Image
 from shapely.geometry import asPoint
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
-from shapely.geometry import MultiPoint
-from shapely.ops import transform
-from functools import partial
-from scipy.spatial import Delaunay
+#from shapely.geometry import MultiPoint
+#from shapely.ops import transform
+#from functools import partial
 from functools import reduce
 from plotly.subplots import make_subplots
 
@@ -128,7 +127,7 @@ class Planetoid(object):
         values = np.vstack([x, y])
         kernel = st.gaussian_kde(values)
         #an attempt at adding slightly more detail to the relief
-        kernel.set_bandwidth(bw_method=kernel.factor / 1.2)
+        kernel.set_bandwidth(bw_method=kernel.factor / 1.4)
         f = np.reshape(kernel(positions).T, xx.shape)
         
         hillshade = self.calculate_hillshade(np.rot90(f), 315, 45)
@@ -307,7 +306,7 @@ class Planetoid(object):
                 opacity=1,
                 showlegend=False
             ),
-            row=1,
+            row=2,
             col=1
             )
 
@@ -321,10 +320,10 @@ class Planetoid(object):
                 fill='toself',
                 fillcolor = self.ocean_colour,
                 hoverinfo='skip',
-                opacity=0.95,
+                opacity=1,
                 showlegend=False
            ),
-           row=2,
+           row=3,
            col=1
            )
         
@@ -349,7 +348,7 @@ class Planetoid(object):
                             fillcolor = 'black',
                             opacity=0.1,
                             showlegend=False,
-                            ),row=1,col=1)
+                            ),row=2,col=1)
                     
         #flat
         for cluster in tqdm(self.shadows):
@@ -369,7 +368,7 @@ class Planetoid(object):
                             fillcolor = 'black',
                             opacity=0.1,
                             showlegend=False,
-                            ),row=2,col=1)
+                            ),row=3,col=1)
                     
                     
     def plot_light_side(self):
@@ -392,7 +391,7 @@ class Planetoid(object):
                             fillcolor = 'white',
                             opacity=0.1,
                             showlegend=False,
-                            ),row=1,col=1)
+                            ),row=2,col=1)
                     
         #flat
         for cluster in tqdm(self.light_side):
@@ -412,7 +411,7 @@ class Planetoid(object):
                             fillcolor = 'white',
                             opacity=0.1,
                             showlegend=False,
-                            ),row=2,col=1)
+                            ),row=3,col=1)
   
     
     def plot_contours(self):
@@ -437,7 +436,7 @@ class Planetoid(object):
                                     fillcolor = 'rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3]),
                                     opacity=0.95, #- (ix * 0.02),
                                     showlegend=False,
-                                    ),row=1,col=1)
+                                    ),row=2,col=1)
                     else:    
                         for l in line:                
                             self.fig.add_trace(
@@ -451,7 +450,7 @@ class Planetoid(object):
                                             color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])),
                                     opacity=0.95,
                                     showlegend=False
-                                    ),row=1,col=1)
+                                    ),row=2,col=1)
                             
         #flat
         for cluster, contour in self.contours.items():
@@ -472,7 +471,7 @@ class Planetoid(object):
                                     fill='toself',
                                     showlegend=False,
                                     opacity=0.95,# - (ix * 0.02)
-                                    ),row=2,col=1)
+                                    ),row=3,col=1)
                             
                             
     def plot_clustered_points(self):
@@ -490,7 +489,7 @@ class Planetoid(object):
         #     marker = dict(
         #         symbol='circle-open',
         #      )
-            ),row=1,col=1)
+            ),row=2,col=1)
 
         #flat
         self.fig.add_trace(go.Scattergeo(
@@ -504,14 +503,14 @@ class Planetoid(object):
         #     marker = dict(
         #         symbol='circle-open',
         #      )
-            ),row=2,col=1)
+            ),row=3,col=1)
     
     
     def update_geos(self):
         """Update config for maps"""
         # globe
         self.fig.update_geos(
-            row=1,col=1,
+            row=2,col=1,
             showland = False,
             showcountries = False,
             showocean = False,
@@ -541,7 +540,7 @@ class Planetoid(object):
             ))
         #flat
         self.fig.update_geos(
-            row=2,col=1,
+            row=3,col=1,
             showland = False,
             showcountries = False,
             showocean = False,
@@ -570,16 +569,51 @@ class Planetoid(object):
                 gridwidth = 1
             ))
         
+        
+    def add_empty_trace(self):
+        """
+        Add invisible scatter trace.
+        This trace is added to help the autoresize logic work.
+        """
+        
+        width = int(1920/2)
+        height = int(1280/2)
+        self.fig.add_trace(
+            go.Scatter(
+                x=[0, width],
+                y=[0, height],
+                mode="markers",
+                marker_opacity=0,
+                showlegend=False,
+            )
+        )
+
+        # Configure axes
+        self.fig.update_xaxes(
+            visible=False,
+            fixedrange=True,
+            range=[0, width]
+        )
+
+        self.fig.update_yaxes(
+            visible=False,
+            fixedrange=True,
+            range=[0, height],
+            # the scaleanchor attribute ensures that the aspect ratio stays constant
+            scaleanchor="x"
+        )
+        
     
     def update_layout(self, planet_name='Planetoids'):
         """Update layout config"""
-        from PIL import Image
         
         width = int(1920/2)
-        height = int(1281/2)
+        height = int(1280/2)
         
-        image_array = np.random.randint(0, 255, size=(width, height)).astype('uint8')
+        image_array = np.zeros((width, height))
+        image_array = add_salt_and_pepper(image_array,0.001).astype('uint8')
         image = Image.fromarray(image_array)
+        
         
         self.fig.update_layout(
             autosize=True,
@@ -587,15 +621,16 @@ class Planetoid(object):
             height=height,
             title_text = planet_name,
             showlegend = True,
+            dragmode = 'pan',
             plot_bgcolor = "rgba(0,0,0,0)",
             paper_bgcolor = "rgba(0,0,0,0)",
-            margin=dict(l=20, r=20, t=40, b=20),
+            margin=dict(l=0, r=0, t=0, b=0),
             images= [dict(
                   source= image,
                   xref= "x",
                   yref= "y",
-                  x= -20,
-                  y= height,
+                  x= 0,
+                  y = height,
                   sizex= width,
                   sizey= height,
                   sizing= "stretch",
@@ -614,13 +649,18 @@ class Planetoid(object):
         """Construct a new world"""
         
         self.fig = make_subplots(
-            rows=2, cols=2, 
-            vertical_spacing=0.05,
+            rows=4, cols=2, 
+            vertical_spacing=0.01,
             column_widths=[0.5, 0.5],
-            row_heights=[0.66, 0.33],
-            specs=[[{"type": "scattergeo", "colspan": 2}, None],
-                   [{"type": "scattergeo", "colspan": 2}, None]]
+            row_heights=[0.05, 0.67, 0.33, 0.05],
+            specs=[[None, None],
+                   [{"type": "scattergeo", "colspan": 2}, None],
+                   [{"type": "scattergeo", "colspan": 2}, None],
+                   [None, None]
+                   ]
             )
+        
+        self.add_empty_trace()
         
         #identify the maximum number of contours per continent
         self.max_contour = max([len(contour) for contour in self.contours.values()])
@@ -663,3 +703,15 @@ class Planetoid(object):
         
     def save(self):
         plotly.offline.plot(data, filename='file.html')
+        
+        
+def add_salt_and_pepper(gb, prob):
+    '''Adds "Salt & Pepper" noise to an image.
+    gb: should be one-channel image with pixels in [0, 1] range
+    prob: probability (threshold) that controls level of noise'''
+
+    rnd = np.random.rand(gb.shape[0], gb.shape[1])
+    noisy = gb.copy()
+    noisy[rnd < prob] = 0
+    noisy[rnd > 1 - prob] = 255
+    return noisy
