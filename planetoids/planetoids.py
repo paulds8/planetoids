@@ -255,6 +255,55 @@ class Planetoid(object):
         self.contours = cntrs
         self.clean_all_contours()
         
+        
+    def generate_global_streams(self, relief_detail=1, density=1, min_length=0.1, max_length=1):
+        """Still need to have a proper rationale for this apart from it potentially looking good
+        since this effectively represents the gradient of the topography - is it good enough to use
+        this as a proxy for either global winds or ocean currents now? Need to think about this carefully.
+        Need to find a way to put a legitimate 'spin' on the primary axis of the planetoid and model this out"""
+        
+        y=self.data['Latitude'].values
+        x=self.data['Longitude'].values
+        
+        scale_factor = 1.3
+        
+        xmin = -180 * scale_factor
+        xmax = 180 * scale_factor
+        ymin = -90 * scale_factor
+        ymax = 90 * scale_factor
+        
+        # Create global meshgrid
+        xx, yy = np.mgrid[xmin:xmax:(1000 + 1j), ymin:ymax:(1000 + 1j)]
+        
+        positions = np.vstack([xx.ravel(), yy.ravel()])
+        values = np.vstack([x, y])
+        kernel = st.gaussian_kde(values)
+        #an attempt at adding slightly more detail to the relief
+        kernel.set_bandwidth(bw_method=kernel.factor / relief_detail)
+        f = np.reshape(kernel(positions).T, xx.shape)
+        
+        #create a matplotlib figure and adjust the width and heights
+        fig = plt.figure()
+
+        #create a single subplot, just takes over the whole figure if only one is specified
+        ax = fig.add_subplot(111, frameon=False, xticks=[], yticks=[])
+
+        #create the contours
+        CS = plt.contour(yy, xx, f, linewidths=1, colors='b')
+
+        #xi = np.linspace(min(x),max(x), 200)
+        #yi = np.linspace(min(y),max(y), 200)
+
+        #add a streamplot
+        dy, dx = np.gradient(-f)
+        stream_container = plt.streamplot(yy, xx, dx, dy, color='c', density=density,
+                    linewidth=1, arrowsize=0.1, minlength=min_length, maxlength=max_length) 
+
+        plt.tight_layout()
+        plt.show()
+        
+        return stream_container
+        
     
     def clean_all_contours(self):  
         """Use Shapely to modify the contours to prevent the case where Plotly fills the inverted section instead"""
