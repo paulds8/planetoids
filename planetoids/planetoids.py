@@ -3,6 +3,7 @@ import pandas as pd
 import umap
 import pyproj #pip install pyproj==2.2.1 --no-cache-dir
 import plotly.graph_objects as go
+from plotly import offline
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import scipy.stats as st
@@ -66,6 +67,8 @@ class Planetoid(object):
         self.max_contour = None
         self.shadows = list()
         self.light_side = list()
+        self.hillshade = None
+        self.topos = list()
 
 
     def rescale_coordinates(self):
@@ -129,8 +132,9 @@ class Planetoid(object):
         #an attempt at adding slightly more detail to the relief
         kernel.set_bandwidth(bw_method=kernel.factor / 1.5)
         f = np.reshape(kernel(positions).T, xx.shape)
+        self.topos.append(f)
         
-        hillshade = self.calculate_hillshade(np.rot90(f), 315, 45)
+        self.hillshade = self.calculate_hillshade(np.rot90(f), 315, 45)
 
         fig = plt.figure(figsize=(8,8))
         ax = fig.gca()
@@ -139,13 +143,12 @@ class Planetoid(object):
         #cfset = ax.contourf(xx, yy, f, cmap='coolwarm')
         #ax.imshow(np.rot90(f), cmap='coolwarm', extent=[-180, 180, -90, 90])
         cset = ax.contour(xx, yy, f, colors='k', levels=topography_levels, )
+        plt.close(fig)
         
         cntrs = self.get_contour_verts(cset)
         
-        plt.close(fig)
-        
-        self.generate_hillshade_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
-        self.generate_lighting_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
+        self.generate_hillshade_polygons(self.hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
+        self.generate_lighting_polygons(self.hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
         
         return cntrs
     
@@ -706,7 +709,8 @@ class Planetoid(object):
                    [{"type": "scattergeo", "colspan": 2}, None],
                    [{"type": "scattergeo", "colspan": 2}, None],
                    [None, None]
-                   ]
+                   ],
+            subplot_titles = (planet_name, '')
             )
         
         self.add_empty_trace()
@@ -728,6 +732,8 @@ class Planetoid(object):
             
         if plot_points:
             self.plot_clustered_points()
+            
+        self.generate_global_streams(relief_detail=1, density=1, min_length=0.1)
                             
         self.update_geos()
 
@@ -751,7 +757,7 @@ class Planetoid(object):
         
         
     def save(self):
-        plotly.offline.plot(data, filename='file.html')
+        offline.plot(data, filename='file.html')
         
         
 def add_salt_and_pepper(gb, prob):
