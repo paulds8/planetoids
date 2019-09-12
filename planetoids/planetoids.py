@@ -256,7 +256,7 @@ class Planetoid(object):
 
     def get_all_contours(self, topography_levels=20, lighting_levels=20):
         """Get all of the contours per class"""
-        for cluster in tqdm(np.unique(self.data['Cluster'].values)):
+        for cluster in tqdm(np.unique(self.data['Cluster'].values), desc='Generating data'):
             points_df = self.data.loc[self.data['Cluster'] == cluster, ['Longitude', 'Latitude']]
             self.get_contours(cluster, points_df, topography_levels, lighting_levels)
                
@@ -276,7 +276,7 @@ class Planetoid(object):
         ax = fig.add_subplot(111, frameon=False, xticks=[], yticks=[])
 
         #create the boundary
-        aoe = unary_union([asPolygon(x) for x in [item for sublist in cntrs for item in sublist] if len(x) > 0]).buffer(-5)
+        aoe = unary_union([asPolygon(x) for x in [item for sublist in cntrs for item in sublist] if len(x) > 0]).buffer(0)
 
         #add a streamplot
         dy, dx = np.gradient(f)
@@ -296,40 +296,7 @@ class Planetoid(object):
         #plt.close(fig)
         
         return stream_container
-    
-    
-    def plot_streams(self):
-        """Plot the streams"""
-        #globe
-        for cluster in tqdm(self.streams):
-            
-            for size in np.unique([x[1] for x in cluster]):
-                
-                # this definitely has potential for breaking out into an animation submodule
-                # need to think carefully about how we can take this past a simple random assignment
-                #need to be smarter about segments that touch
-                
-                stream_array = np.array([stream[0].coords for stream in cluster if stream[1] == size])
-                #stream_array_selection = np.random.choice(stream_array.shape[0], int(1.0*stream_array.shape[0]), replace=False)
-                #stream_array_selection = np.append(stream_array_selection, [0])
-                #stream_array = stream_array[stream_array_selection]
-                stream_array = np.concatenate([item for sublist in [[x, np.array([[None, None], [None, None]])] for x in stream_array] for item in sublist])
-                
-                self.fig.add_trace(
-                    go.Scattergeo(
-                        connectgaps =False,
-                        lon = list(stream_array[:, 0]),
-                        lat = list(stream_array[:, 1]),
-                        hoverinfo='skip',
-                        mode='lines',
-                        line=dict(width=2*size,
-                                  #dash='dot',
-                                color='rgb' + str(self.cmap(self.max_contour+1, bytes=True)[0:3])
-                                ),
-                        opacity=0.2 * size,
-                        showlegend=False,
-                        ),row=2,col=1)
-        
+           
     
     def clean_contours(self, cntrs):  
         """Use Shapely to modify the contours to prevent the case where Plotly fills the inverted section instead"""
@@ -385,30 +352,12 @@ class Planetoid(object):
             ),
             row=2,
             col=1
-            )
-
-        #flat
-        self.fig.add_trace(
-            go.Scattergeo(
-                lon = [-179.9,179.9,179.9,-179.9],
-                lat = [89.9,89.9,-89.9,-89.9],
-                mode='lines',
-                line=dict(width=1, color=self.ocean_colour),
-                fill='toself',
-                fillcolor = self.ocean_colour,
-                hoverinfo='skip',
-                opacity=1,
-                showlegend=False
-           ),
-           row=3,
-           col=1
-           )
-        
+            )        
   
     def plot_shadows(self):
         """Plot the hillshade-derived shadows"""
         #globe
-        for cluster in tqdm(self.shadows):
+        for cluster in tqdm(self.shadows, desc='Plotting Shadows'):
             for ix, shadow in enumerate(cluster):
                 if ix % 2 == 0:
                     shadow_array = np.array(shadow)
@@ -426,32 +375,12 @@ class Planetoid(object):
                             opacity=0.1,
                             showlegend=False,
                             ),row=2,col=1)
-                    
-        #flat
-        for cluster in tqdm(self.shadows):
-            for ix, shadow in enumerate(cluster):
-                if ix % 2 == 0:
-                    shadow_array = np.array(shadow)
-                    self.fig.add_trace(
-                        go.Scattergeo(
-                            lon = list(shadow_array[:, 0]),
-                            lat = list(shadow_array[:, 1]),
-                            hoverinfo='skip',
-                            mode='lines',
-                            line=dict(width=0,
-                                    color='black'
-                                    ),
-                            fill='toself',
-                            fillcolor = 'black',
-                            opacity=0.1,
-                            showlegend=False,
-                            ),row=3,col=1)
                     
                     
     def plot_light_side(self):
         """Plot the hillshade-derived lighting"""
         #globe
-        for cluster in tqdm(self.light_side):
+        for cluster in tqdm(self.light_side, desc='Plotting highlight'):
             for ix, lighting in enumerate(cluster):
                 if ix % 2 == 0:
                     lighting_array = np.array(lighting)
@@ -469,32 +398,12 @@ class Planetoid(object):
                             opacity=0.1,
                             showlegend=False,
                             ),row=2,col=1)
-                    
-        #flat
-        for cluster in tqdm(self.light_side):
-            for ix, lighting in enumerate(cluster):
-                if ix % 2 == 0:
-                    lighting_array = np.array(lighting)
-                    self.fig.add_trace(
-                        go.Scattergeo(
-                            lon = list(lighting_array[:, 0]),
-                            lat = list(lighting_array[:, 1]),
-                            hoverinfo='skip',
-                            mode='lines',
-                            line=dict(width=0,
-                                    color='white'
-                                    ),
-                            fill='toself',
-                            fillcolor = 'white',
-                            opacity=0.1,
-                            showlegend=False,
-                            ),row=3,col=1)
   
     
     def plot_contours(self):
         """Plot the topography"""
         #globe
-        for cluster, contour in tqdm(self.contours.items()):
+        for cluster, contour in tqdm(self.contours.items(), desc='Plotting contours'):
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
                 if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
@@ -525,30 +434,42 @@ class Planetoid(object):
                                     line=dict(width=1, #*np.power(np.exp(ix/max_contour),2),
                                             dash='longdashdot',
                                             color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])),
-                                    opacity=0.95,
+                                    opacity=0.75,
                                     showlegend=False
                                     ),row=2,col=1)
                             
-        #flat
-        for cluster, contour in self.contours.items():
-            for ix, line in enumerate(contour):
-                #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
-                    for l in line:
-                        if ix % 2 == 0:
-                            self.fig.add_trace(
-                                go.Scattergeo(
-                                    lon = list(l[:, 0]),
-                                    lat = list(l[:, 1]),
-                                    hoverinfo='skip',
-                                    mode='lines',
-                                    line=dict(width=0,
-                                              color='rgb' + str(tuple(list(self.cmap(ix/len(contour), bytes=True)[0:3])))
-                                              ),
-                                    fill='toself',
-                                    showlegend=False,
-                                    opacity=0.95,# - (ix * 0.02)
-                                    ),row=3,col=1)
+                            
+    def plot_streams(self):
+        """Plot the streams"""
+        #globe
+        for cluster in tqdm(self.streams, desc='Plotting streams'):
+            
+            for size in np.unique([x[1] for x in cluster]):
+                
+                # this definitely has potential for breaking out into an animation submodule
+                # need to think carefully about how we can take this past a simple random assignment
+                #need to be smarter about segments that touch
+                
+                stream_array = np.array([stream[0].coords for stream in cluster if stream[1] == size])
+                #stream_array_selection = np.random.choice(stream_array.shape[0], int(1.0*stream_array.shape[0]), replace=False)
+                #stream_array_selection = np.append(stream_array_selection, [0])
+                #stream_array = stream_array[stream_array_selection]
+                stream_array = np.concatenate([item for sublist in [[x, np.array([[None, None], [None, None]])] for x in stream_array] for item in sublist])
+                
+                self.fig.add_trace(
+                    go.Scattergeo(
+                        connectgaps =False,
+                        lon = list(stream_array[:, 0]),
+                        lat = list(stream_array[:, 1]),
+                        hoverinfo='skip',
+                        mode='lines',
+                        line=dict(width=3*size,
+                                  #dash='dot',
+                                color='rgb' + str(self.cmap(self.max_contour+1, bytes=True)[0:3])
+                                ),
+                        opacity=0.5 * size,
+                        showlegend=False,
+                        ),row=2,col=1)
                             
                             
     def plot_clustered_points(self):
@@ -566,22 +487,7 @@ class Planetoid(object):
         #     marker = dict(
         #         symbol='circle-open',
         #      )
-            ),row=2,col=1)
-
-        #flat
-        self.fig.add_trace(go.Scattergeo(
-            lon = self.data['Longitude'],
-            lat = self.data['Latitude'],
-            marker_color=self.data['Cluster'],
-            hoverinfo='text',
-            hovertext=self.data['Cluster'],
-            marker_size=1,
-            showlegend=False,
-        #     marker = dict(
-        #         symbol='circle-open',
-        #      )
-            ),row=3,col=1)
-    
+            ),row=2,col=1)    
     
     def update_geos(self):
         """Update config for maps"""
@@ -599,36 +505,6 @@ class Planetoid(object):
             bgcolor = "rgba(0,0,0,0)",
             projection = dict(
                 type = 'orthographic',
-                rotation = dict(
-                    lon = 0,
-                    lat = 0,
-                    roll = 0
-                )
-            ),
-            lonaxis = dict(
-                showgrid = True,
-                gridcolor = 'rgb(102, 102, 102)',
-                gridwidth = 1
-            ),
-            lataxis = dict(
-                showgrid = True,
-                gridcolor = 'rgb(102, 102, 102)',
-                gridwidth = 1
-            ))
-        #flat
-        self.fig.update_geos(
-            row=3,col=1,
-            showland = False,
-            showcountries = False,
-            showocean = False,
-            showcoastlines=False,
-            showframe=False,
-            showrivers=False,
-            showlakes=False,
-            showsubunits=False,
-            bgcolor = "rgba(0,0,0,0)",
-            projection = dict(
-                type = 'natural earth',
                 rotation = dict(
                     lon = 0,
                     lat = 0,
@@ -726,12 +602,11 @@ class Planetoid(object):
         """Construct a new world"""
         
         self.fig = make_subplots(
-            rows=4, cols=2, 
+            rows=3, cols=2, 
             vertical_spacing=0.05,
             #column_widths=[0.5, 0.5],
-            row_heights=[0.05, 0.67, 0.33, 0.02],
+            row_heights=[0.05, 0.93, 0.02],
             specs=[[None, None],
-                   [{"type": "scattergeo", "colspan": 2}, None],
                    [{"type": "scattergeo", "colspan": 2}, None],
                    [None, None]
                    ],
