@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import scipy.stats as st
 import cv2 as cv
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from PIL import Image
 from shapely.geometry import asPoint
