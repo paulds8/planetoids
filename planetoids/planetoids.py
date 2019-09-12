@@ -197,7 +197,7 @@ class Planetoid(object):
                         coords = list(zip(x_loc + [x_loc[0]], y_loc + [y_loc[0]]))
                         if len(coords) > 3:
                             #attempt some smoothing and reorienting of generated polygons
-                            coords = list(asPolygon(coords).buffer(1, join_style=1).buffer(-1, join_style=1).exterior.coords)
+                            coords = list(asPolygon(coords).buffer(2, join_style=1).buffer(-1.5, join_style=1).exterior.coords)
                             cluster_shadows.append(coords)       
         self.shadows.append(cluster_shadows)
         
@@ -261,7 +261,7 @@ class Planetoid(object):
             self.get_contours(cluster, points_df, topography_levels, lighting_levels)
                
         
-    def generate_streams(self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2):
+    def generate_streams(self, f, xx, yy, cntrs, density=2, min_length=0.005, max_length=0.2):
         """Still need to have a proper rationale for this apart from it potentially looking good
         since this effectively represents the gradient of the topography - is it good enough to use
         this as a proxy for either global winds and eventually repurpose for ocean currents now?
@@ -463,11 +463,11 @@ class Planetoid(object):
                         lat = list(stream_array[:, 1]),
                         hoverinfo='skip',
                         mode='lines',
-                        line=dict(width=3*size,
+                        line=dict(width=2*size,
                                   #dash='dot',
                                 color='rgb' + str(self.cmap(self.max_contour+1, bytes=True)[0:3])
                                 ),
-                        opacity=0.5 * size,
+                        opacity=0.01 + 0.25 * (1/np.cos(size) - 1),
                         showlegend=False,
                         ),row=2,col=1)
                             
