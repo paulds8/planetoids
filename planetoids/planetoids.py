@@ -14,6 +14,7 @@ from PIL import Image
 from shapely.geometry import asPoint
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
+from shapely.ops import unary_union
 #from shapely.geometry import MultiPoint
 #from shapely.ops import transform
 #from functools import partial
@@ -60,7 +61,7 @@ class Planetoid(object):
         self.data = self.data[[component1_field, component2_field, cluster_field]]
         
         #set the rest
-        self.contours = None
+        self.contours = dict()
         self.ocean_colour = None
         self.fig = None
         self.cmap = None
@@ -69,6 +70,7 @@ class Planetoid(object):
         self.light_side = list()
         self.hillshade = None
         self.topos = list()
+        self.streams = list()
 
 
     def rescale_coordinates(self):
@@ -107,9 +109,10 @@ class Planetoid(object):
         return cntr
     
 
-    def get_contours(self, subset, topography_levels, lighting_levels):
+    def get_contours(self, cluster, subset, topography_levels, lighting_levels):
         """Generate contour lines based on density of points per cluster/class"""
-                
+          
+        # this is required since we need to throw some of them away later      
         topography_levels += 5
         
         y=subset['Latitude'].values
@@ -145,10 +148,13 @@ class Planetoid(object):
         cset = ax.contour(xx, yy, f, colors='k', levels=topography_levels, )
         plt.close(fig)
         
-        cntrs = self.get_contour_verts(cset)
+        cntrs = self.clean_contours(self.get_contour_verts(cset))
+        
+        self.contours[cluster] = cntrs
         
         self.generate_hillshade_polygons(self.hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
         self.generate_lighting_polygons(self.hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
+        self.streams.append(self.generate_streams(f, xx, yy, cntrs))
         
         return cntrs
     
@@ -250,40 +256,18 @@ class Planetoid(object):
 
     def get_all_contours(self, topography_levels=20, lighting_levels=20):
         """Get all of the contours per class"""
-        cntrs = {}
         for cluster in tqdm(np.unique(self.data['Cluster'].values)):
             points_df = self.data.loc[self.data['Cluster'] == cluster, ['Longitude', 'Latitude']]
-            cntrs[cluster] = self.get_contours(points_df, topography_levels, lighting_levels)
+            self.get_contours(cluster, points_df, topography_levels, lighting_levels)
+               
         
-        self.contours = cntrs
-        self.clean_all_contours()
-        
-        
-    def generate_global_streams(self, relief_detail=1, density=1, min_length=0.1, max_length=1):
+    def generate_streams(self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2):
         """Still need to have a proper rationale for this apart from it potentially looking good
         since this effectively represents the gradient of the topography - is it good enough to use
-        this as a proxy for either global winds or ocean currents now? Need to think about this carefully.
-        Need to find a way to put a legitimate 'spin' on the primary axis of the planetoid and model this out"""
-        
-        y=self.data['Latitude'].values
-        x=self.data['Longitude'].values
-        
-        scale_factor = 1.3
-        
-        xmin = -180 * scale_factor
-        xmax = 180 * scale_factor
-        ymin = -90 * scale_factor
-        ymax = 90 * scale_factor
-        
-        # Create global meshgrid
-        xx, yy = np.mgrid[xmin:xmax:(1000 + 1j), ymin:ymax:(1000 + 1j)]
-        
-        positions = np.vstack([xx.ravel(), yy.ravel()])
-        values = np.vstack([x, y])
-        kernel = st.gaussian_kde(values)
-        #an attempt at adding slightly more detail to the relief
-        kernel.set_bandwidth(bw_method=kernel.factor / relief_detail)
-        f = np.reshape(kernel(positions).T, xx.shape)
+        this as a proxy for either global winds and eventually repurpose for ocean currents now?
+        Need to think about this carefully.
+        Need to find a way to put a legitimate 'spin' on the primary axis of the planetoid and model this out
+        for the currents"""
         
         #create a matplotlib figure and adjust the width and heights
         fig = plt.figure()
@@ -291,29 +275,70 @@ class Planetoid(object):
         #create a single subplot, just takes over the whole figure if only one is specified
         ax = fig.add_subplot(111, frameon=False, xticks=[], yticks=[])
 
-        #create the contours
-        CS = plt.contour(yy, xx, f, linewidths=1, colors='b')
-
-        #xi = np.linspace(min(x),max(x), 200)
-        #yi = np.linspace(min(y),max(y), 200)
+        #create the boundary
+        aoe = unary_union([asPolygon(x) for x in [item for sublist in cntrs for item in sublist] if len(x) > 0]).buffer(-5)
 
         #add a streamplot
-        dy, dx = np.gradient(-f)
+        dy, dx = np.gradient(f)
+        c = np.sqrt(dx*dx + dy*dy)
         stream_container = plt.streamplot(yy, xx, dx, dy, color='c', density=density,
-                    linewidth=1, arrowsize=0.1, minlength=min_length, maxlength=max_length) 
+                    linewidth=1.0*c/c.max(), arrowsize=0.1, minlength=min_length, maxlength=max_length) 
+        
+        #this is the data we're extracting from the streams
+        widths = np.round(stream_container.lines.get_linewidth(),2)
+        segments = stream_container.lines.get_segments()
 
-        plt.tight_layout()
-        plt.show()
+        segments_with_width = [[segments[i], widths[i]] for i in range(0, len(segments))]
+        
+        cleaned = [[asLineString(p[0][:,[1, 0]]), p[1]] for p in segments_with_width if -90 < p[0][0].any() < 90 and -180 < p[0][1].any() < 180]
+        stream_container = [p for p in cleaned if p[0].intersects(aoe)]
+
+        #plt.close(fig)
         
         return stream_container
+    
+    
+    def plot_streams(self):
+        """Plot the streams"""
+        #globe
+        for cluster in tqdm(self.streams):
+            
+            for size in np.unique([x[1] for x in cluster]):
+                
+                # this definitely has potential for breaking out into an animation submodule
+                # need to think carefully about how we can take this past a simple random assignment
+                #need to be smarter about segments that touch
+                
+                stream_array = np.array([stream[0].coords for stream in cluster if stream[1] == size])
+                #stream_array_selection = np.random.choice(stream_array.shape[0], int(1.0*stream_array.shape[0]), replace=False)
+                #stream_array_selection = np.append(stream_array_selection, [0])
+                #stream_array = stream_array[stream_array_selection]
+                stream_array = np.concatenate([item for sublist in [[x, np.array([[None, None], [None, None]])] for x in stream_array] for item in sublist])
+                
+                self.fig.add_trace(
+                    go.Scattergeo(
+                        connectgaps =False,
+                        lon = list(stream_array[:, 0]),
+                        lat = list(stream_array[:, 1]),
+                        hoverinfo='skip',
+                        mode='lines',
+                        line=dict(width=2*size,
+                                  #dash='dot',
+                                color='rgb' + str(self.cmap(self.max_contour+1, bytes=True)[0:3])
+                                ),
+                        opacity=0.2 * size,
+                        showlegend=False,
+                        ),row=2,col=1)
         
     
-    def clean_all_contours(self):  
+    def clean_contours(self, cntrs):  
         """Use Shapely to modify the contours to prevent the case where Plotly fills the inverted section instead"""
-        for cluster, contour in self.contours.items():
-            for ix, line in enumerate(contour):
-                for il, l in enumerate(line):         
-                    self.contours[cluster][ix][il] = np.array(asPolygon(l).buffer(1, join_style=1).buffer(-1, join_style=1).exterior.coords)
+        cleaned = cntrs.copy()
+        for ix, line in enumerate(cntrs):
+            for il, l in enumerate(line):
+                # expanding and contracting like this has a smoothing effect         
+                cleaned[ix][il] = np.array(asPolygon(l).buffer(0.01, join_style=1).buffer(-0.01, join_style=1).exterior.coords)
+        return cleaned
     
     
     def calculate_hillshade(self, array, azimuth, angle_altitude): 
@@ -472,7 +497,7 @@ class Planetoid(object):
         for cluster, contour in tqdm(self.contours.items()):
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 4:
+                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
                     if ix % 2 == 0:
                         for l in line:
                             self.fig.add_trace(
@@ -508,7 +533,7 @@ class Planetoid(object):
         for cluster, contour in self.contours.items():
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 4:
+                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
                     for l in line:
                         if ix % 2 == 0:
                             self.fig.add_trace(
@@ -717,7 +742,7 @@ class Planetoid(object):
         
         #identify the maximum number of contours per continent
         self.max_contour = max([len(contour) for contour in self.contours.values()])
-        self.cmap = cm.get_cmap(self.ecology, self.max_contour)
+        self.cmap = cm.get_cmap(self.ecology, self.max_contour + 1)
         
         self.ocean_colour = 'rgb' + str(self.cmap(3/self.max_contour, bytes=True)[0:3])
         
@@ -726,14 +751,14 @@ class Planetoid(object):
         if plot_topography:
             self.plot_contours()
             
+        self.plot_streams()
+            
         if plot_lighting:
             self.plot_shadows()
             self.plot_light_side()
             
         if plot_points:
             self.plot_clustered_points()
-            
-        self.generate_global_streams(relief_detail=1, density=1, min_length=0.1)
                             
         self.update_geos()
 
