@@ -406,7 +406,7 @@ class Planetoid(object):
         for cluster, contour in tqdm(self.contours.items(), desc='Plotting contours'):
             for ix, line in enumerate(contour):
                 #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 2:
+                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 3:
                     if ix % 2 == 0:
                         for l in line:
                             self.fig.add_trace(
@@ -629,8 +629,8 @@ class Planetoid(object):
         self.plot_streams()
             
         if plot_lighting:
-            self.plot_shadows()
             self.plot_light_side()
+            self.plot_shadows()
             
         if plot_points:
             self.plot_clustered_points()
