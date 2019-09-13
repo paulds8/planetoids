@@ -68,7 +68,6 @@ class Planetoid(object):
         self.max_contour = None
         self.shadows = list()
         self.light_side = list()
-        self.hillshade = None
         self.topos = list()
         self.streams = list()
 
@@ -133,11 +132,11 @@ class Planetoid(object):
         values = np.vstack([x, y])
         kernel = st.gaussian_kde(values)
         #an attempt at adding slightly more detail to the relief
-        kernel.set_bandwidth(bw_method=kernel.factor / 1.5)
+        kernel.set_bandwidth(bw_method=kernel.factor / 1)
         f = np.reshape(kernel(positions).T, xx.shape)
         self.topos.append(f)
         
-        self.hillshade = self.calculate_hillshade(np.rot90(f), 315, 45)
+        hillshade = self.calculate_hillshade(np.rot90(f), 315, 45)
 
         fig = plt.figure(figsize=(8,8))
         ax = fig.gca()
@@ -152,8 +151,8 @@ class Planetoid(object):
         
         self.contours[cluster] = cntrs
         
-        self.generate_hillshade_polygons(self.hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
-        self.generate_lighting_polygons(self.hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
+        self.generate_hillshade_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
+        self.generate_lighting_polygons(hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels)
         self.streams.append(self.generate_streams(f, xx, yy, cntrs))
         
         return cntrs
@@ -165,7 +164,7 @@ class Planetoid(object):
         
         #we have to strech it for the opencv function to catch the edges properly
         hs_array = (hillshade - hillshade.min())/(hillshade.max()-hillshade.min()) * 255
-        hist, bin_edges = np.histogram(hs_array, bins=lighting_levels)
+        hist, bin_edges = np.histogram(hs_array, bins=lighting_levels+5)
         #bin_centers = 0.5*(bin_edges[:-1] + bin_edges[1:])
         
         #still need to refine this, but this piece here should help catch only the shadows and not the 'light side'
@@ -197,7 +196,7 @@ class Planetoid(object):
                         coords = list(zip(x_loc + [x_loc[0]], y_loc + [y_loc[0]]))
                         if len(coords) > 3:
                             #attempt some smoothing and reorienting of generated polygons
-                            coords = list(asPolygon(coords).buffer(2, join_style=1).buffer(-1.5, join_style=1).exterior.coords)
+                            coords = list(asPolygon(coords).simplify(0.01).buffer(3, join_style=1).buffer(-3, join_style=1).buffer(3, join_style=1).buffer(-3, join_style=1).exterior.coords)
                             cluster_shadows.append(coords)       
         self.shadows.append(cluster_shadows)
         
@@ -208,7 +207,7 @@ class Planetoid(object):
         
         #we have to strech it for the opencv function to catch the edges properly
         hs_array = (hillshade - hillshade.min())/(hillshade.max()-hillshade.min()) * 255
-        hist, bin_edges = np.histogram(hs_array, bins=lighting_levels)
+        hist, bin_edges = np.histogram(hs_array, bins=lighting_levels+5)
         #bin_centers = 0.5*(bin_edges[:-1] + bin_edges[1:])
         
         #still need to refine this, but this piece here should help catch only the 'light side' highlights
@@ -240,7 +239,7 @@ class Planetoid(object):
                         coords = list(zip(x_loc + [x_loc[0]], y_loc + [y_loc[0]]))
                         if len(coords) > 3:
                             #attempt some smoothing
-                            coords = list(asPolygon(coords).buffer(1, join_style=1).buffer(-1, join_style=1).exterior.coords)
+                            coords = list(asPolygon(coords).simplify(0.01).buffer(3, join_style=1).buffer(-3, join_style=1).buffer(3, join_style=1).buffer(-3, join_style=1).exterior.coords)
                             light_side.append(coords)
         self.light_side.append(light_side)
         
@@ -261,7 +260,7 @@ class Planetoid(object):
             self.get_contours(cluster, points_df, topography_levels, lighting_levels)
                
         
-    def generate_streams(self, f, xx, yy, cntrs, density=2, min_length=0.005, max_length=0.2):
+    def generate_streams(self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2):
         """Still need to have a proper rationale for this apart from it potentially looking good
         since this effectively represents the gradient of the topography - is it good enough to use
         this as a proxy for either global winds and eventually repurpose for ocean currents now?
@@ -300,11 +299,23 @@ class Planetoid(object):
     
     def clean_contours(self, cntrs):  
         """Use Shapely to modify the contours to prevent the case where Plotly fills the inverted section instead"""
-        cleaned = cntrs.copy()
+        cleaned = list()
         for ix, line in enumerate(cntrs):
             for il, l in enumerate(line):
-                # expanding and contracting like this has a smoothing effect         
-                cleaned[ix][il] = np.array(asPolygon(l).buffer(0.01, join_style=1).buffer(-0.01, join_style=1).exterior.coords)
+                # expanding and contracting like this has a smoothing effect       
+                poly = asPolygon(l).buffer(0.01, join_style=1).buffer(-0.01, join_style=1)                       
+                if poly.geom_type == 'MultiPolygon':
+                    polys = [np.array(p.exterior.coords) for p in list(poly)]
+                    coords = []
+                    for co in coords:
+                        if co.shape[0] >= 3:
+                            coords.append(co)
+                    cleaned.append(coords)
+                        
+                else:
+                    coords = np.array(poly.exterior.coords)
+                    if coords.shape[0] >= 3: 
+                        cleaned.append([coords])
         return cleaned
     
     
@@ -372,7 +383,7 @@ class Planetoid(object):
                                     ),
                             fill='toself',
                             fillcolor = 'black',
-                            opacity=0.1,
+                            opacity=0.15,
                             showlegend=False,
                             ),row=2,col=1)
                     
@@ -402,11 +413,9 @@ class Planetoid(object):
     
     def plot_contours(self):
         """Plot the topography"""
-        #globe
-        for cluster, contour in tqdm(self.contours.items(), desc='Plotting contours'):
-            for ix, line in enumerate(contour):
-                #need to update this to actually check for contours that form polygons
-                if len(line) > 0 and ix > (self.max_contour-3)/len(contour) + 3:
+        for cluster, contours in tqdm(self.contours.items(), desc='Plotting contours'):
+            for ix, line in enumerate(contours):
+                if ix > (self.max_contour-3)/len(contours) + 1:
                     if ix % 2 == 0:
                         for l in line:
                             self.fig.add_trace(
@@ -415,16 +424,16 @@ class Planetoid(object):
                                     lat = list(l[:, 1]),
                                     hoverinfo='skip',
                                     mode='lines',
-                                    line=dict(width=0,
-                                            color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])
-                                            ),
+                                    line=dict(width=0, #*np.power(np.exp(ix/max_contour),2),
+                                            dash='longdashdot',
+                                            color='rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3])),
                                     fill='toself',
                                     fillcolor = 'rgb' + str(self.cmap(ix/self.max_contour, bytes=True)[0:3]),
-                                    opacity=0.95, #- (ix * 0.02),
+                                    opacity=0.3 + ((ix/self.max_contour) * 0.7),
                                     showlegend=False,
                                     ),row=2,col=1)
-                    else:    
-                        for l in line:                
+                    else:  
+                        for l in line:             
                             self.fig.add_trace(
                                 go.Scattergeo(
                                     lon = list(l[:, 0]),
@@ -463,11 +472,11 @@ class Planetoid(object):
                         lat = list(stream_array[:, 1]),
                         hoverinfo='skip',
                         mode='lines',
-                        line=dict(width=2*size,
+                        line=dict(width=1*size,
                                   #dash='dot',
-                                color='rgb' + str(self.cmap(self.max_contour+1, bytes=True)[0:3])
+                                color='rgb' + str(self.cmap(int(self.max_contour/2), bytes=True)[0:3])
                                 ),
-                        opacity=0.01 + 0.25 * (1/np.cos(size) - 1),
+                        opacity=0.15 + 0.2 * (1/np.cos(size) - 1),
                         showlegend=False,
                         ),row=2,col=1)
                             
@@ -619,7 +628,7 @@ class Planetoid(object):
         self.max_contour = max([len(contour) for contour in self.contours.values()])
         self.cmap = cm.get_cmap(self.ecology, self.max_contour + 1)
         
-        self.ocean_colour = 'rgb' + str(self.cmap(3/self.max_contour, bytes=True)[0:3])
+        self.ocean_colour = 'rgb' + str(self.cmap(1/self.max_contour, bytes=True)[0:3])
         
         self.plot_surface()
 
