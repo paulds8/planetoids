@@ -1,1 +1,12 @@
 ENV/
+.idea/libraries/R_User_Library.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/planetoids.iml
+.idea/vcs.xml
+.idea/workspace.xml
+.ipynb_checkpoints/demo-checkpoint.ipynb
+.vscode/settings.json
+demo.ipynb
+planetoids/__pycache__/planetoids.cpython-37.pyc
+venv/pyvenv.cfg
