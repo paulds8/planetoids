@@ -73,10 +73,10 @@ class Planetoid(object):
         self.shadows = list()
         self.light_side = list()
         self.topos = list()
-        self.streams = list()
+        self.relief = list()
 
     def rescale_coordinates(self):
-        """Rescale provided components as pseudo latitudes and longitudes"""
+        """Rescale provided components as pseudo latitudes and longitudes."""
         # trying to prevent issues at the extremes
         lat_scaler = MinMaxScaler(feature_range=(-80, 80))
         long_scaler = MinMaxScaler(feature_range=(-170, 170))
@@ -96,7 +96,8 @@ class Planetoid(object):
         # plt.show()
 
     def get_contour_verts(self, cn):
-        """Get the vertices from the mpl plot to generate our own geometries"""
+        """Get the vertices from the mpl plot to generate our own
+        geometries."""
         cntr = []
         # for each contour line
         for cc in cn.collections:
@@ -114,7 +115,8 @@ class Planetoid(object):
         return cntr
 
     def get_contours(self, cluster, subset, topography_levels, lighting_levels):
-        """Generate contour lines based on density of points per cluster/class"""
+        """Generate contour lines based on density of points per
+        cluster/class."""
 
         # this is required since we need to throw some of them away later
         topography_levels += 5
@@ -165,7 +167,7 @@ class Planetoid(object):
         self.generate_lighting_polygons(
             hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
         )
-        self.streams.append(self.generate_streams(f, xx, yy, cntrs))
+        self.relief.append(self.generate_relief(f, xx, yy, cntrs))
 
         return cntrs
 
@@ -302,7 +304,7 @@ class Planetoid(object):
         # plt.show()
 
     def get_all_contours(self, topography_levels=20, lighting_levels=20):
-        """Get all of the contours per class"""
+        """Get all of the contours per class."""
         for cluster in tqdm(
             np.unique(self.data["Cluster"].values), desc="Generating data"
         ):
@@ -311,15 +313,18 @@ class Planetoid(object):
             ]
             self.get_contours(cluster, points_df, topography_levels, lighting_levels)
 
-    def generate_streams(
+    def generate_relief(
         self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
     ):
-        """Still need to have a proper rationale for this apart from it potentially looking good
+        """Still need to have a proper rationale for this apart from it
+        potentially looking good.
+
         since this effectively represents the gradient of the topography - is it good enough to use
         this as a proxy for either global winds and eventually repurpose for ocean currents now?
         Need to think about this carefully.
         Need to find a way to put a legitimate 'spin' on the primary axis of the planetoid and model this out
-        for the currents"""
+        for the currents
+        """
 
         # create a matplotlib figure and adjust the width and heights
         fig = plt.figure()
@@ -352,7 +357,7 @@ class Planetoid(object):
             maxlength=max_length,
         )
 
-        # this is the data we're extracting from the streams
+        # this is the data we're extracting from the relief
         widths = np.round(stream_container.lines.get_linewidth(), 2)
         segments = stream_container.lines.get_segments()
 
@@ -372,7 +377,8 @@ class Planetoid(object):
         return stream_container
 
     def clean_contours(self, cntrs):
-        """Use Shapely to modify the contours to prevent the case where Plotly fills the inverted section instead"""
+        """Use Shapely to modify the contours to prevent the case where Plotly
+        fills the inverted section instead."""
         cleaned = list()
         for ix, line in enumerate(cntrs):
             for il, l in enumerate(line):
@@ -395,7 +401,7 @@ class Planetoid(object):
         return cleaned
 
     def calculate_hillshade(self, array, azimuth, angle_altitude):
-        """Calculate a hillshade over the generated topography"""
+        """Calculate a hillshade over the generated topography."""
 
         # hacky fix for now - need to trace what's making the mirroring necessary
         azimuth += 180
@@ -413,14 +419,15 @@ class Planetoid(object):
         return 255 * (shaded + 1) / 2
 
     def fit(self, topography_levels=20, lighting_levels=20):
-        """Generate data required for terraforming"""
+        """Generate data required for terraforming."""
         # transform 2d components into pseudo lat/longs
         self.rescale_coordinates()
         # generate contours per class
         self.get_all_contours(topography_levels, lighting_levels)
 
     def plot_surface(self):
-        """This plots the surface layer which we need because we can't set it directly"""
+        """This plots the surface layer which we need because we can't set it
+        directly."""
         # globe
         self.fig.add_trace(
             go.Scattergeo(
@@ -439,7 +446,7 @@ class Planetoid(object):
         )
 
     def plot_shadows(self):
-        """Plot the hillshade-derived shadows"""
+        """Plot the hillshade-derived shadows."""
         # globe
         for cluster in tqdm(self.shadows, desc="Plotting Shadows"):
             for ix, shadow in enumerate(cluster):
@@ -462,7 +469,7 @@ class Planetoid(object):
                     )
 
     def plot_light_side(self):
-        """Plot the hillshade-derived lighting"""
+        """Plot the hillshade-derived lighting."""
         # globe
         for cluster in tqdm(self.light_side, desc="Plotting highlight"):
             for ix, lighting in enumerate(cluster):
@@ -485,7 +492,7 @@ class Planetoid(object):
                     )
 
     def plot_contours(self):
-        """Plot the topography"""
+        """Plot the topography."""
         for cluster, contours in tqdm(self.contours.items(), desc="Plotting contours"):
             for ix, line in enumerate(contours):
                 if ix > (self.max_contour - 3) / len(contours) + 1:
@@ -514,7 +521,7 @@ class Planetoid(object):
                                             0:3
                                         ]
                                     ),
-                                    opacity=0.3 + ((ix / self.max_contour) * 0.7),
+                                    opacity=0.2 + ((ix / self.max_contour) * 0.8),
                                     showlegend=False,
                                 ),
                                 row=2,
@@ -545,10 +552,10 @@ class Planetoid(object):
                                 col=1,
                             )
 
-    def plot_streams(self):
-        """Plot the streams"""
+    def plot_relief(self):
+        """Plot the relief."""
         # globe
-        for cluster in tqdm(self.streams, desc="Plotting streams"):
+        for cluster in tqdm(self.relief, desc="Plotting relief"):
 
             for size in np.unique([x[1] for x in cluster]):
 
@@ -585,10 +592,10 @@ class Planetoid(object):
                             # dash='dot',
                             color="rgb"
                             + str(
-                                self.cmap(int(self.max_contour / 2), bytes=True)[0:3]
+                                self.cmap(int(stream_array.shape[0] / 2), bytes=True)[0:3]
                             ),
                         ),
-                        opacity=0.15 + 0.2 * (1 / np.cos(size) - 1),
+                        opacity=0.1 + 0.25 * (1 / np.cos(size) - 1),
                         showlegend=False,
                     ),
                     row=2,
@@ -596,7 +603,7 @@ class Planetoid(object):
                 )
 
     def plot_clustered_points(self):
-        """Plot the provided point data"""
+        """Plot the provided point data."""
 
         # globe
         self.fig.add_trace(
@@ -617,7 +624,7 @@ class Planetoid(object):
         )
 
     def update_geos(self):
-        """Update config for maps"""
+        """Update config for maps."""
         # globe
         self.fig.update_geos(
             row=2,
@@ -637,8 +644,8 @@ class Planetoid(object):
         )
 
     def add_empty_trace(self):
-        """
-        Add invisible scatter trace.
+        """Add invisible scatter trace.
+
         This trace is added to help the autoresize logic work.
         """
 
@@ -666,7 +673,7 @@ class Planetoid(object):
         )
 
     def update_layout(self, planet_name="Planetoids"):
-        """Update layout config"""
+        """Update layout config."""
 
         width = int(1920 / 2)
         height = int(1280 / 2)
@@ -709,7 +716,7 @@ class Planetoid(object):
         planet_name="Planetoids",
         render=True,
     ):
-        """Construct a new world"""
+        """Construct a new world."""
 
         self.fig = make_subplots(
             rows=3,
@@ -740,7 +747,7 @@ class Planetoid(object):
         if plot_topography:
             self.plot_contours()
 
-        self.plot_streams()
+        self.plot_relief()
 
         if plot_lighting:
             self.plot_light_side()
@@ -766,7 +773,8 @@ class Planetoid(object):
         planet_name="Planetoids",
         render=True,
     ):
-        """Fit and terraform in a single step, akin to fit_transform people are used to"""
+        """Fit and terraform in a single step, akin to fit_transform people are
+        used to."""
         self.fit(topography_levels=topography_levels, lighting_levels=lighting_levels)
         self.terraform(plot_topography, plot_points, plot_lighting, planet_name, render)
 
@@ -776,8 +784,10 @@ class Planetoid(object):
 
 def add_salt_and_pepper(gb, prob):
     """Adds "Salt & Pepper" noise to an image.
+
     gb: should be one-channel image with pixels in [0, 1] range
-    prob: probability (threshold) that controls level of noise"""
+    prob: probability (threshold) that controls level of noise
+    """
 
     rnd = np.random.rand(gb.shape[0], gb.shape[1])
     noisy = gb.copy()
