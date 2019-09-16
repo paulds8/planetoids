@@ -15,6 +15,7 @@ from shapely.geometry import asPoint
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
 from shapely.ops import unary_union
+from random import shuffle
 
 # from shapely.geometry import MultiPoint
 # from shapely.ops import transform
@@ -27,15 +28,15 @@ class Planetoid(object):
     def __init__(
         self,
         data,
-        component1_field,
-        component2_field,
+        y,
+        x,
         cluster_field,
         ecology="gist_earth",
     ):
 
         self.data = None
-        self.component1_field = None
-        self.component2_field = None
+        self.y = None
+        self.x = None
         self.cluster_field = None
         self.ecology = None
 
@@ -43,12 +44,12 @@ class Planetoid(object):
             self.data = data
         else:
             raise ValueError("Please provide a pandas DataFrame")
-        if component1_field in self.data.columns:
-            self.component1_field = component1_field
+        if y in self.data.columns:
+            self.y = y
         else:
             raise ValueError("Component 1 field not in provided DataFrame")
-        if component2_field in self.data.columns:
-            self.component2_field = component2_field
+        if x in self.data.columns:
+            self.x = x
         else:
             raise ValueError("Component 2 field not in provided DataFrame")
         if cluster_field in self.data.columns:
@@ -62,7 +63,7 @@ class Planetoid(object):
             raise ValueError(e)
 
         # only keep what we need
-        self.data = self.data[[component1_field, component2_field, cluster_field]]
+        self.data = self.data[[y, x, cluster_field]]
 
         # set the rest
         self.contours = dict()
@@ -82,10 +83,10 @@ class Planetoid(object):
         long_scaler = MinMaxScaler(feature_range=(-170, 170))
 
         self.data["Latitude"] = lat_scaler.fit_transform(
-            self.data[self.component1_field].values.reshape(-1, 1)
+            self.data[self.y].values.reshape(-1, 1)
         ).reshape(-1)
         self.data["Longitude"] = long_scaler.fit_transform(
-            self.data[self.component2_field].values.reshape(-1, 1)
+            self.data[self.x].values.reshape(-1, 1)
         ).reshape(-1)
 
         # self.data.plot(kind='scatter',
@@ -114,7 +115,7 @@ class Planetoid(object):
 
         return cntr
 
-    def get_contours(self, cluster, subset, topography_levels, lighting_levels):
+    def get_contours(self, cluster, subset, topography_levels, lighting_levels, relief_density):
         """Generate contour lines based on density of points per
         cluster/class."""
 
@@ -133,16 +134,17 @@ class Planetoid(object):
         ymax = min(90, max(y) + deltaY)
         # print(xmin, xmax, ymin, ymax)
         # Create meshgrid
+        # todo: let a user specify the grid density
         xx, yy = np.mgrid[
-            xmin : xmax : (30 * topography_levels + 1j),
-            ymin : ymax : (30 * topography_levels + 1j),
+            xmin : xmax : (30 * 10 + 1j),#(30 * topography_levels + 1j),
+            ymin : ymax : (30 * 10 + 1j),#(30 * topography_levels + 1j),
         ]
 
         positions = np.vstack([xx.ravel(), yy.ravel()])
         values = np.vstack([x, y])
         kernel = st.gaussian_kde(values)
         # an attempt at adding slightly more detail to the relief
-        kernel.set_bandwidth(bw_method=kernel.factor / 1)
+        kernel.set_bandwidth(bw_method=kernel.factor / 1.2)
         f = np.reshape(kernel(positions).T, xx.shape)
         self.topos.append(f)
 
@@ -167,7 +169,7 @@ class Planetoid(object):
         self.generate_lighting_polygons(
             hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
         )
-        self.relief.append(self.generate_relief(f, xx, yy, cntrs))
+        self.relief.append(self.generate_relief(f, xx, yy, cntrs, relief_density))
 
         return cntrs
 
@@ -224,8 +226,6 @@ class Planetoid(object):
                         coords = list(
                             asPolygon(coords)
                             .simplify(0.01)
-                            .buffer(3, join_style=1)
-                            .buffer(-3, join_style=1)
                             .buffer(3, join_style=1)
                             .buffer(-3, join_style=1)
                             .exterior.coords
@@ -288,8 +288,6 @@ class Planetoid(object):
                             .simplify(0.01)
                             .buffer(3, join_style=1)
                             .buffer(-3, join_style=1)
-                            .buffer(3, join_style=1)
-                            .buffer(-3, join_style=1)
                             .exterior.coords
                         )
                         light_side.append(coords)
@@ -303,7 +301,7 @@ class Planetoid(object):
         # plt.imshow(hs_array,cmap='Greys', extent=[xmin, xmax, ymin, ymax])
         # plt.show()
 
-    def get_all_contours(self, topography_levels=20, lighting_levels=20):
+    def get_all_contours(self, topography_levels=20, lighting_levels=20, relief_density=3):
         """Get all of the contours per class."""
         for cluster in tqdm(
             np.unique(self.data["Cluster"].values), desc="Generating data"
@@ -311,7 +309,7 @@ class Planetoid(object):
             points_df = self.data.loc[
                 self.data["Cluster"] == cluster, ["Longitude", "Latitude"]
             ]
-            self.get_contours(cluster, points_df, topography_levels, lighting_levels)
+            self.get_contours(cluster, points_df, topography_levels, lighting_levels, relief_density)
 
     def generate_relief(
         self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
@@ -339,7 +337,7 @@ class Planetoid(object):
                 for x in [item for sublist in cntrs for item in sublist]
                 if len(x) > 0
             ]
-        ).buffer(0)
+        ).buffer(-3)
 
         # add a streamplot
         dy, dx = np.gradient(f)
@@ -358,7 +356,7 @@ class Planetoid(object):
         )
 
         # this is the data we're extracting from the relief
-        widths = np.round(stream_container.lines.get_linewidth(), 2)
+        widths = np.round(stream_container.lines.get_linewidth(), 1)
         segments = stream_container.lines.get_segments()
 
         segments_with_width = [
@@ -418,12 +416,12 @@ class Planetoid(object):
         ) * np.cos(azimuthrad - aspect)
         return 255 * (shaded + 1) / 2
 
-    def fit(self, topography_levels=20, lighting_levels=20):
+    def fit(self, topography_levels=20, lighting_levels=20, relief_density=3):
         """Generate data required for terraforming."""
         # transform 2d components into pseudo lat/longs
         self.rescale_coordinates()
         # generate contours per class
-        self.get_all_contours(topography_levels, lighting_levels)
+        self.get_all_contours(topography_levels, lighting_levels, relief_density)
 
     def plot_surface(self):
         """This plots the surface layer which we need because we can't set it
@@ -461,7 +459,7 @@ class Planetoid(object):
                             line=dict(width=0, color="black"),
                             fill="toself",
                             fillcolor="black",
-                            opacity=0.15,
+                            opacity=0.05 + (ix/len(cluster)*0.1),
                             showlegend=False,
                         ),
                         row=2,
@@ -484,7 +482,7 @@ class Planetoid(object):
                             line=dict(width=0, color="white"),
                             fill="toself",
                             fillcolor="white",
-                            opacity=0.1,
+                            opacity=0.01 + (ix/len(cluster)*0.1),
                             showlegend=False,
                         ),
                         row=2,
@@ -493,9 +491,17 @@ class Planetoid(object):
 
     def plot_contours(self):
         """Plot the topography."""
-        for cluster, contours in tqdm(self.contours.items(), desc="Plotting contours"):
+        for cluster, cntrs in tqdm(self.contours.items(), desc="Plotting contours"):
+            #introduce some randomness in the topography layering
+            contours = cntrs.copy()
+            dont_shuffle_start = contours[0:5]
+            dont_shuffle_end = contours[-2:]
+            do_shuffle = contours[5:-2]
+            shuffle(do_shuffle)
+            contours = dont_shuffle_start + do_shuffle + dont_shuffle_end
+            
             for ix, line in enumerate(contours):
-                if ix > (self.max_contour - 3) / len(contours) + 1:
+                if ix > (self.max_contour - 3) / len(contours) + 2:
                     if ix % 2 == 0:
                         for l in line:
                             self.fig.add_trace(
@@ -521,7 +527,7 @@ class Planetoid(object):
                                             0:3
                                         ]
                                     ),
-                                    opacity=0.2 + ((ix / self.max_contour) * 0.8),
+                                    opacity=0.1 + ((ix / self.max_contour) * 0.5),
                                     showlegend=False,
                                 ),
                                 row=2,
@@ -545,7 +551,7 @@ class Planetoid(object):
                                             )[0:3]
                                         ),
                                     ),
-                                    opacity=0.75,
+                                    opacity=0.1 + ((ix / self.max_contour) * 0.5),
                                     showlegend=False,
                                 ),
                                 row=2,
@@ -559,16 +565,11 @@ class Planetoid(object):
 
             for size in np.unique([x[1] for x in cluster]):
 
-                # this definitely has potential for breaking out into an animation submodule
-                # need to think carefully about how we can take this past a simple random assignment
                 # need to be smarter about segments that touch
 
                 stream_array = np.array(
                     [stream[0].coords for stream in cluster if stream[1] == size]
                 )
-                # stream_array_selection = np.random.choice(stream_array.shape[0], int(1.0*stream_array.shape[0]), replace=False)
-                # stream_array_selection = np.append(stream_array_selection, [0])
-                # stream_array = stream_array[stream_array_selection]
                 stream_array = np.concatenate(
                     [
                         item
@@ -588,14 +589,14 @@ class Planetoid(object):
                         hoverinfo="skip",
                         mode="lines",
                         line=dict(
-                            width=1 * size,
+                            width=2 * size,
                             # dash='dot',
-                            color="rgb"
-                            + str(
-                                self.cmap(int(stream_array.shape[0] / 2), bytes=True)[0:3]
-                            ),
+                            color='black'#"rgb"
+                            #+ str(
+                            #    self.cmap(int(stream_array.shape[0] / 3), bytes=True)[0:3]
+                            #),
                         ),
-                        opacity=0.1 + 0.25 * (1 / np.cos(size) - 1),
+                        opacity=0.1 + 0.15 * (1 / np.cos(size) - 1),
                         showlegend=False,
                     ),
                     row=2,
@@ -767,6 +768,7 @@ class Planetoid(object):
         self,
         topography_levels=20,
         lighting_levels=20,
+        relief_density=3,
         plot_topography=True,
         plot_points=True,
         plot_lighting=True,
@@ -775,7 +777,7 @@ class Planetoid(object):
     ):
         """Fit and terraform in a single step, akin to fit_transform people are
         used to."""
-        self.fit(topography_levels=topography_levels, lighting_levels=lighting_levels)
+        self.fit(topography_levels=topography_levels, lighting_levels=lighting_levels, relief_density=relief_density)
         self.terraform(plot_topography, plot_points, plot_lighting, planet_name, render)
 
     def save(self):
