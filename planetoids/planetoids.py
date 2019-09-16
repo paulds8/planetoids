@@ -15,7 +15,7 @@ from shapely.geometry import asPoint
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
 from shapely.ops import unary_union
-from random import shuffle
+import random
 
 # from shapely.geometry import MultiPoint
 # from shapely.ops import transform
@@ -30,8 +30,9 @@ class Planetoid(object):
         data,
         y,
         x,
-        cluster_field,
+        cluster_field=None,
         ecology="gist_earth",
+        random_state=None
     ):
 
         self.data = None
@@ -39,6 +40,7 @@ class Planetoid(object):
         self.x = None
         self.cluster_field = None
         self.ecology = None
+        random_state=None
 
         if isinstance(data, pd.DataFrame):
             self.data = data
@@ -47,12 +49,12 @@ class Planetoid(object):
         if y in self.data.columns:
             self.y = y
         else:
-            raise ValueError("Component 1 field not in provided DataFrame")
+            raise ValueError("X field not in provided DataFrame")
         if x in self.data.columns:
             self.x = x
         else:
-            raise ValueError("Component 2 field not in provided DataFrame")
-        if cluster_field in self.data.columns:
+            raise ValueError("Y field not in provided DataFrame")
+        if cluster_field is not None or cluster_field in self.data.columns:
             self.cluster_field = cluster_field
         else:
             raise ValueError("Cluster field not in provided DataFrame")
@@ -61,6 +63,16 @@ class Planetoid(object):
             self.ecology = ecology
         except Exception as e:
             raise ValueError(e)
+        if isinstance(random_state, int):
+            self.random_state = random_state
+            np.random.seed(self.random_state)
+            random.seed(self.random_state)
+            cv.setRNGSeed(self.random_state)
+        elif random_state is None:
+            pass
+        else:
+            raise ValueError("Please provide an integer value for your random seed")
+            
 
         # only keep what we need
         self.data = self.data[[y, x, cluster_field]]
@@ -72,11 +84,11 @@ class Planetoid(object):
         self.cmap = None
         self.max_contour = None
         self.shadows = list()
-        self.light_side = list()
+        self.highlight = list()
         self.topos = list()
         self.relief = list()
 
-    def rescale_coordinates(self):
+    def _rescale_coordinates(self):
         """Rescale provided components as pseudo latitudes and longitudes."""
         # trying to prevent issues at the extremes
         lat_scaler = MinMaxScaler(feature_range=(-80, 80))
@@ -96,26 +108,7 @@ class Planetoid(object):
         #                 cmap='Spectral')
         # plt.show()
 
-    def get_contour_verts(self, cn):
-        """Get the vertices from the mpl plot to generate our own
-        geometries."""
-        cntr = []
-        # for each contour line
-        for cc in cn.collections:
-            paths = []
-            # for each separate section of the contour line
-            for pp in cc.get_paths():
-                xy = []
-                # for each segment of that section
-                for vv in pp.iter_segments():
-                    xy.append(vv[0])
-                paths.append(np.vstack(xy))
-
-            cntr.append(paths)
-
-        return cntr
-
-    def get_contours(self, cluster, subset, topography_levels, lighting_levels, relief_density):
+    def _get_contours(self, cluster, subset, topography_levels, lighting_levels, relief_density):
         """Generate contour lines based on density of points per
         cluster/class."""
 
@@ -148,7 +141,7 @@ class Planetoid(object):
         f = np.reshape(kernel(positions).T, xx.shape)
         self.topos.append(f)
 
-        hillshade = self.calculate_hillshade(np.rot90(f), 315, 45)
+        hillshade = self._calculate_hillshade(np.rot90(f), 315, 45)
 
         fig = plt.figure(figsize=(8, 8))
         ax = fig.gca()
@@ -159,19 +152,38 @@ class Planetoid(object):
         cset = ax.contour(xx, yy, f, colors="k", levels=topography_levels)
         plt.close(fig)
 
-        cntrs = self.clean_contours(self.get_contour_verts(cset))
+        cntrs = self._clean_contours(self._get_contour_verts(cset))
 
         self.contours[cluster] = cntrs
 
         self.generate_hillshade_polygons(
             hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
         )
-        self.generate_lighting_polygons(
+        self.generate_highlight_polygons(
             hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
         )
         self.relief.append(self.generate_relief(f, xx, yy, cntrs, relief_density))
 
         return cntrs
+    
+    def _get_contour_verts(self, cn):
+        """Get the vertices from the mpl plot to generate our own
+        geometries."""
+        cntr = []
+        # for each contour line
+        for cc in cn.collections:
+            paths = []
+            # for each separate section of the contour line
+            for pp in cc.get_paths():
+                xy = []
+                # for each segment of that section
+                for vv in pp.iter_segments():
+                    xy.append(vv[0])
+                paths.append(np.vstack(xy))
+
+            cntr.append(paths)
+
+        return cntr
 
     def generate_hillshade_polygons(
         self, hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
@@ -233,7 +245,7 @@ class Planetoid(object):
                         cluster_shadows.append(coords)
         self.shadows.append(cluster_shadows)
 
-    def generate_lighting_polygons(
+    def generate_highlight_polygons(
         self, hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
     ):
 
@@ -249,7 +261,7 @@ class Planetoid(object):
         # still need to refine this, but this piece here should help catch only the 'light side' highlights
         bin_edges = [x for x in bin_edges if x <= 70]
 
-        light_side = []
+        highlight = []
         for b in list(zip(bin_edges[:-1], bin_edges[1:])):
             hs_array_binary_slice = hs_array.copy()
             hs_array_binary_slice[
@@ -290,8 +302,8 @@ class Planetoid(object):
                             .buffer(-3, join_style=1)
                             .exterior.coords
                         )
-                        light_side.append(coords)
-        self.light_side.append(light_side)
+                        highlight.append(coords)
+        self.highlight.append(highlight)
 
         # #plot
         # fig = plt.figure(figsize=(8,8))
@@ -309,7 +321,7 @@ class Planetoid(object):
             points_df = self.data.loc[
                 self.data["Cluster"] == cluster, ["Longitude", "Latitude"]
             ]
-            self.get_contours(cluster, points_df, topography_levels, lighting_levels, relief_density)
+            self._get_contours(cluster, points_df, topography_levels, lighting_levels, relief_density)
 
     def generate_relief(
         self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
@@ -370,11 +382,11 @@ class Planetoid(object):
         ]
         stream_container = [p for p in cleaned if p[0].intersects(aoe)]
 
-        # plt.close(fig)
+        plt.close(fig)
 
         return stream_container
 
-    def clean_contours(self, cntrs):
+    def _clean_contours(self, cntrs):
         """Use Shapely to modify the contours to prevent the case where Plotly
         fills the inverted section instead."""
         cleaned = list()
@@ -398,7 +410,7 @@ class Planetoid(object):
                         cleaned.append([coords])
         return cleaned
 
-    def calculate_hillshade(self, array, azimuth, angle_altitude):
+    def _calculate_hillshade(self, array, azimuth, angle_altitude):
         """Calculate a hillshade over the generated topography."""
 
         # hacky fix for now - need to trace what's making the mirroring necessary
@@ -415,13 +427,6 @@ class Planetoid(object):
             slope
         ) * np.cos(azimuthrad - aspect)
         return 255 * (shaded + 1) / 2
-
-    def fit(self, topography_levels=20, lighting_levels=20, relief_density=3):
-        """Generate data required for terraforming."""
-        # transform 2d components into pseudo lat/longs
-        self.rescale_coordinates()
-        # generate contours per class
-        self.get_all_contours(topography_levels, lighting_levels, relief_density)
 
     def plot_surface(self):
         """This plots the surface layer which we need because we can't set it
@@ -466,10 +471,10 @@ class Planetoid(object):
                         col=1,
                     )
 
-    def plot_light_side(self):
+    def plot_highlight(self):
         """Plot the hillshade-derived lighting."""
         # globe
-        for cluster in tqdm(self.light_side, desc="Plotting highlight"):
+        for cluster in tqdm(self.highlight, desc="Plotting highlight"):
             for ix, lighting in enumerate(cluster):
                 if ix % 2 == 0:
                     lighting_array = np.array(lighting)
@@ -497,7 +502,7 @@ class Planetoid(object):
             dont_shuffle_start = contours[0:5]
             dont_shuffle_end = contours[-2:]
             do_shuffle = contours[5:-2]
-            shuffle(do_shuffle)
+            random.shuffle(do_shuffle)
             contours = dont_shuffle_start + do_shuffle + dont_shuffle_end
             
             for ix, line in enumerate(contours):
@@ -708,6 +713,13 @@ class Planetoid(object):
                 )
             ],
         )
+        
+    def fit(self, topography_levels=20, lighting_levels=20, relief_density=3):
+        """Generate data required for terraforming."""
+        # transform 2d components into pseudo lat/longs
+        self._rescale_coordinates()
+        # generate contours per class
+        self.get_all_contours(topography_levels, lighting_levels, relief_density)
 
     def terraform(
         self,
@@ -751,7 +763,7 @@ class Planetoid(object):
         self.plot_relief()
 
         if plot_lighting:
-            self.plot_light_side()
+            self.plot_highlight()
             self.plot_shadows()
 
         if plot_points:
