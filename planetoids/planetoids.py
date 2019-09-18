@@ -756,8 +756,8 @@ class Planetoid(object):
         This trace is added to help the autoresize logic work.
         """
 
-        width = int(1920 / 2)
-        height = int(1280 / 2)
+        width = 1920
+        height = 1280
         self._fig.add_trace(
             go.Scatter(
                 x=[0, width],
@@ -784,8 +784,8 @@ class Planetoid(object):
         Update layout config.
         """
 
-        width = int(1920 / 2)
-        height = int(1280 / 2)
+        width = 1920
+        height = 1280
 
         image_array = np.zeros((width, height))
         image_array = self._add_salt_and_pepper(image_array, 0.001).astype("uint8")
@@ -793,8 +793,8 @@ class Planetoid(object):
 
         self._fig.update_layout(
             autosize=True,
-            width=width,
-            height=height,
+            width=None,
+            height=None,
             title_text=planet_name,
             showlegend=False,
             dragmode="pan",
