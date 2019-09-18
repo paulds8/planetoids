@@ -6,10 +6,34 @@ import pytest
 import pandas as pd
 import numpy as np
 import pickle
+import cv2 as cv
+import random
 from sklearn.datasets import make_blobs
 from planetoids import planetoids as pt
 
 np.random.seed(42)
+random.seed(42)
+cv.setRNGSeed(42)
+
+
+def test_world_construction():
+    planet = pt.Planetoid(data, "0", "1", "Cluster", random_state=42)
+    return planet
+
+
+def test_world_construction_exceptions():
+    with pytest.raises(Exception):
+        assert pt.Planetoid([], "0", "1", "Cluster", random_state=42)
+    with pytest.raises(Exception):
+        assert pt.Planetoid(data, "a", "1", "Cluster", random_state=42)
+    with pytest.raises(Exception):
+        assert pt.Planetoid(data, "0", "b", "Cluster", random_state=42)
+    with pytest.raises(Exception):
+        assert pt.Planetoid(data, "0", "1", "c", random_state=42)
+    with pytest.raises(Exception):
+        assert pt.Planetoid(data, "0", "1", "Cluster", ecology="d", random_state=42)
+    with pytest.raises(Exception):
+        assert pt.Planetoid(data, "0", "1", "Cluster", random_state="e")
 
 
 def test_rescale_coordinates():
@@ -100,6 +124,8 @@ def test_get_contour_verts():
         for ixx, vv in enumerate(v):
             np.testing.assert_almost_equal(vv, verts_calc[ix][ixx], verbose=True)
 
+    return f
+
 
 def test_clean_contours():
     print("Testing contour cleaning")
@@ -167,9 +193,9 @@ def test_generate_hillshade_polygons():
     with open("test/hs_poly.pickle", "rb") as handle:
         hs_poly_check = pickle.load(handle)
 
-    for ix, v in enumerate(hs_poly_check):
+    for ix, v in enumerate(hs_poly_check[: len(hs_poly)]):
         for ixx, vv in enumerate(v):
-            assert vv == hs_poly[ix][ixx]
+            np.testing.assert_almost_equal(vv, hs_poly[ix][ixx])
 
 
 def test_generate_highlight_polygons():
@@ -185,9 +211,77 @@ def test_generate_highlight_polygons():
     with open("test/highlight_poly.pickle", "rb") as handle:
         highlight_poly_check = pickle.load(handle)
 
-    for ix, v in enumerate(highlight_poly_check):
+    for ix, v in enumerate(highlight_poly_check[: len(highlight_poly)]):
         for ixx, vv in enumerate(v):
-            assert vv == highlight_poly[ix][ixx]
+            np.testing.assert_almost_equal(vv, highlight_poly[ix][ixx])
+
+
+def test_generate_relief():
+    print("Testing generated relief")
+    from shapely.wkb import dumps, loads
+
+    cntrs = None
+    with open("test/cntrs_0.pickle", "rb") as handle:
+        cntrs = pickle.load(handle)
+
+    stream_container = planet.generate_relief(
+        f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
+    )
+
+    stream_container = [[dumps(x[0]), x[1]] for x in stream_container]
+
+    # with open("test/relief_0.pickle", "wb") as handle:
+    #     pickle.dump(stream_container, handle)
+
+    stream_container_check = None
+    with open("test/relief_0.pickle", "rb") as handle:
+        stream_container_check = pickle.load(handle)
+
+    # stream_container_check = [[loads(x[0]), x[1]] for x in stream_container_check]
+
+    assert stream_container == stream_container_check
+
+
+# need to have something slightly more robust here, but for now this will do
+
+
+def test_terraform():
+    print("Testing terraform")
+    # slightly different test, just seeing if it runs without error
+    planet.terraform(render=False)
+
+
+def test_terraform_exception():
+    print("Testing terraform no fit exception")
+    with pytest.raises(Exception):
+        planet = test_world_construction()
+        assert planet.terraform(render=False)
+
+
+def test_fit():
+    print("Testing fit")
+    # slightly different test, just seeing if it runs without error
+    planet.fit()
+
+
+def test_fit_terraform():
+    print("Testing fit_terraform")
+    # slightly different test, just seeing if it runs without error
+    planet = test_world_construction()
+    planet.fit_terraform(render=False)
+
+
+def test_add_salt_and_pepper():
+    print("Testing adding salt and pepper noise")
+    image_array = np.zeros((100, 100))
+    snp = planet._add_salt_and_pepper(image_array, 0.1)
+    # np.save("test/salt_and_pepper", snp)
+    # np.testing.assert_array_almost_equal(snp, np.load("test/salt_and_pepper.npy"))
+
+
+def test_save():
+    print("Testing save")
+    planet.save()
 
 
 ##################################################
@@ -196,14 +290,19 @@ def test_generate_highlight_polygons():
 ##################################################
 
 data = pd.read_csv("test/test_data.csv")
-planet = pt.Planetoid(data, "0", "1", "Cluster", random_state=42)
-
+planet = test_world_construction()
+test_world_construction_exceptions()
 test_rescale_coordinates()
 test_get_all_contours()
 test_get_contours()
-test_get_contour_verts()
+f = test_get_contour_verts()
 test_clean_contours()
 xx, yy, xmin, xmax, ymin, ymax = test_calculate_hillshade()
 test_generate_hillshade_polygons()
 test_generate_highlight_polygons()
-
+test_fit()
+test_terraform()
+test_terraform_exception()
+test_fit_terraform()
+test_add_salt_and_pepper()
+test_save()
