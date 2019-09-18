@@ -646,7 +646,7 @@ class Planetoid(object):
             showlakes=False,
             showsubunits=False,
             bgcolor="rgba(0,0,0,0)",
-            projection=dict(type="orthographic", rotation=dict(lon=0, lat=0, roll=0)),
+            projection=dict(type=self.projection, rotation=dict(lon=0, lat=0, roll=0)),
             lonaxis=dict(showgrid=True, gridcolor="rgb(102, 102, 102)", gridwidth=1),
             lataxis=dict(showgrid=True, gridcolor="rgb(102, 102, 102)", gridwidth=1),
         )
@@ -729,10 +729,13 @@ class Planetoid(object):
         plot_topography=True,
         plot_points=True,
         plot_lighting=True,
+        projection = 'orthographic',
         planet_name="Planetoids",
         render=True,
     ):
         """Construct a new world."""
+        
+        self.projection = projection
         
         if not self.data_generated:
             raise Exception("Please first run .fit() before attemption to terraform.")
@@ -790,13 +793,14 @@ class Planetoid(object):
         plot_topography=True,
         plot_points=True,
         plot_lighting=True,
+        projection='orthographic',
         planet_name="Planetoids",
         render=True,
     ):
         """Fit and terraform in a single step, akin to fit_transform people are
         used to."""
         self.fit(topography_levels=topography_levels, lighting_levels=lighting_levels, relief_density=relief_density)
-        self.terraform(plot_topography, plot_points, plot_lighting, planet_name, render)
+        self.terraform(plot_topography, plot_points, plot_lighting, projection, planet_name, render)
 
     def save(self, filename="planetoid.html", output_type='file', include_plotlyjs=True, auto_open=False):
         offline.plot(self.fig, filename = filename, output_type=output_type, include_plotlyjs=include_plotlyjs, auto_open=auto_open)
