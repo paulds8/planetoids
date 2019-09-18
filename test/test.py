@@ -45,10 +45,10 @@ def test_rescale_coordinates():
     )
 
 
-def test_get_all_contours():
+def test__get_all_contours():
     print("Testing get all contours")
 
-    planet.get_all_contours(topography_levels=20, lighting_levels=20, relief_density=3)
+    planet._get_all_contours(topography_levels=20, lighting_levels=20, relief_density=3)
 
     # with open("test/contours.pickle", "wb") as handle:
     #     pickle.dump(planet.contours, handle)
@@ -180,9 +180,9 @@ def test_calculate_hillshade():
     return xx, yy, xmin, xmax, ymin, ymax
 
 
-def test_generate_hillshade_polygons():
+def test__generate_hillshade_polygons():
     print("Testing shadow polygon generation")
-    planet.generate_hillshade_polygons(
+    planet._generate_hillshade_polygons(
         np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
     )
     hs_poly = planet.shadows
@@ -198,9 +198,9 @@ def test_generate_hillshade_polygons():
             np.testing.assert_almost_equal(vv, hs_poly[ix][ixx])
 
 
-def test_generate_highlight_polygons():
+def test__generate_highlight_polygons():
     print("Testing highlight polygon generation")
-    planet.generate_highlight_polygons(
+    planet._generate_highlight_polygons(
         np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
     )
     highlight_poly = planet.highlight
@@ -216,7 +216,7 @@ def test_generate_highlight_polygons():
             np.testing.assert_almost_equal(vv, highlight_poly[ix][ixx])
 
 
-def test_generate_relief():
+def test__generate_relief():
     print("Testing generated relief")
     from shapely.wkb import dumps, loads
 
@@ -224,7 +224,7 @@ def test_generate_relief():
     with open("test/cntrs_0.pickle", "rb") as handle:
         cntrs = pickle.load(handle)
 
-    stream_container = planet.generate_relief(
+    stream_container = planet._generate_relief(
         f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
     )
 
@@ -293,13 +293,13 @@ data = pd.read_csv("test/test_data.csv")
 planet = test_world_construction()
 test_world_construction_exceptions()
 test_rescale_coordinates()
-test_get_all_contours()
+test__get_all_contours()
 test_get_contours()
 f = test_get_contour_verts()
 test_clean_contours()
 xx, yy, xmin, xmax, ymin, ymax = test_calculate_hillshade()
-test_generate_hillshade_polygons()
-test_generate_highlight_polygons()
+test__generate_hillshade_polygons()
+test__generate_highlight_polygons()
 test_fit()
 test_terraform()
 test_terraform_exception()

@@ -25,48 +25,73 @@ from plotly.subplots import make_subplots
 
 
 class Planetoid(object):
-    def __init__(
-        self,
-        data,
-        y,
-        x,
-        cluster_field=None,
-        ecology="gist_earth",
-        random_state=None
-    ):
+    """A procedurally generated world seeded from two dimensional data,
+    optionally clustered.
 
-        self.data = None
-        self.y = None
-        self.x = None
-        self.cluster_field = None
-        self.ecology = None
-        self.random_state=None
-        
-        self.data_generated = False
+    A `Planetoid` contains all the required material to generate a new world from a minimal set of input data.
+
+    Apart from looking beautiful, the generated features can be interpreted analytically.
+
+    # **Parameters**
+    ----------
+    `data` : `DataFrame`  
+        Pandas `DataFrame` holding the seed data used to generate the `Planetoid`
+
+    `y` : `string`  
+        Column name for y-axis seed from data, this will be used to generate `latitudes`
+
+    `x` : `string`  
+        Column name for x-axis seed from data, this will be used to generate `longitudes`
+
+    `cluster_field` : `string`, optional (default=`None`)  
+        Optional column name for cluster attribute from data, this will be used to generate `land masses` independently
+
+    `ecology` : `string` (default `gist_earth`)  
+        Any one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)
+
+    `random_state` : `int`, optional (default=`None`)  
+        Optional `integer` to seed the random number generators for reproducibility if required
+
+    # **Examples**
+    ----------
+    See [**examples**]()
+    """
+
+    def __init__(
+        self, data, y, x, cluster_field=None, ecology="gist_earth", random_state=None
+    ):
+        self._data = None
+        self._y = None
+        self._x = None
+        self._cluster_field = None
+        self._ecology = None
+        self._random_state = None
+
+        self._data_generated = False
 
         if isinstance(data, pd.DataFrame):
-            self.data = data
+            self._data = data
         else:
             raise ValueError("Please provide a pandas DataFrame")
-        if y in self.data.columns:
-            self.y = y
+        if y in self._data.columns:
+            self._y = y
         else:
             raise ValueError("X field not in provided DataFrame")
-        if x in self.data.columns:
-            self.x = x
+        if x in self._data.columns:
+            self._x = x
         else:
             raise ValueError("Y field not in provided DataFrame")
-        if cluster_field is not None or cluster_field in self.data.columns:
-            self.cluster_field = cluster_field
+        if cluster_field is not None or cluster_field in self._data.columns:
+            self._cluster_field = cluster_field
         else:
             raise ValueError("Cluster field not in provided DataFrame")
         try:
             cm.get_cmap(ecology, 1)
-            self.ecology = ecology
+            self._ecology = ecology
         except Exception as e:
             raise ValueError(e)
         if isinstance(random_state, int):
-            self.random_state = random_state
+            self._random_state = random_state
             np.random.seed(self.random_state)
             random.seed(self.random_state)
             cv.setRNGSeed(self.random_state)
@@ -74,45 +99,100 @@ class Planetoid(object):
             pass
         else:
             raise ValueError("Please provide an integer value for your random seed")
-            
 
         # only keep what we need
-        self.data = self.data[[y, x, cluster_field]]
+        self._data = self._data[[y, x, cluster_field]]
 
         # set the rest
-        self.contours = dict()
-        self.ocean_colour = None
-        self.fig = None
-        self.cmap = None
-        self.max_contour = None
-        self.shadows = list()
-        self.highlight = list()
-        self.topos = list()
-        self.relief = list()
+        self._contours = dict()
+        self._ocean_colour = None
+        self._fig = None
+        self._cmap = None
+        self._max_contour = None
+        self._shadows = list()
+        self._highlight = list()
+        self._topos = list()
+        self._relief = list()
+
+    @property
+    def data(self):
+        """
+        Pandas `DataFrame` holding the seed data used to generate the `Planetoid`.
+        """
+        return self._data
+
+    @property
+    def y(self):
+        """
+        Column name for y-axis seed from data, this will be used to generate `latitudes`.
+        """
+        return self._y
+
+    @property
+    def x(self):
+        """
+        Column name for x-axis seed from data, this will be used to generate `longitudes`.
+        """
+        return self._x
+
+    @property
+    def cluster_field(self):
+        """
+        Optional column name for cluster attribute from data, this will be used
+        to generate `land masses` independently.
+        """
+        return self._cluster_field
+
+    @property
+    def ecology(self):
+        """
+        Any one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)
+        """
+        return self._ecology
+
+    @property
+    def random_state(self):
+        """
+        Optional `integer` to seed the random number generators for
+        reproducibility if required.
+        """
+        return self._random_state
+    
+    @property
+    def fig(self):
+        """
+        Plotly graph object of the terraformed `Planetoid`.
+        """
+        return self._fig
 
     def _rescale_coordinates(self):
-        """Rescale provided components as pseudo latitudes and longitudes."""
+        """
+        Rescale provided components as pseudo latitudes and longitudes.
+        """
         # trying to prevent issues at the extremes
         lat_scaler = MinMaxScaler(feature_range=(-80, 80))
         long_scaler = MinMaxScaler(feature_range=(-170, 170))
 
-        self.data["Latitude"] = lat_scaler.fit_transform(
-            self.data[self.y].values.reshape(-1, 1)
+        self._data["Latitude"] = lat_scaler.fit_transform(
+            self._data[self.y].values.reshape(-1, 1)
         ).reshape(-1)
-        self.data["Longitude"] = long_scaler.fit_transform(
-            self.data[self.x].values.reshape(-1, 1)
+        self._data["Longitude"] = long_scaler.fit_transform(
+            self._data[self.x].values.reshape(-1, 1)
         ).reshape(-1)
 
-        # self.data.plot(kind='scatter',
+        # self._data.plot(kind='scatter',
         #                 x='Longitude',
         #                 y='Latitude',
         #                 c=self.cluster_field,
         #                 cmap='Spectral')
         # plt.show()
 
-    def _get_contours(self, cluster, subset, topography_levels, lighting_levels, relief_density):
-        """Generate contour lines based on density of points per
-        cluster/class."""
+    def _get_contours(
+        self, cluster, subset, topography_levels, lighting_levels, relief_density
+    ):
+        """
+        Generate contour lines based on density of points per cluster/class.
+        """
 
         # this is required since we need to throw some of them away later
         topography_levels += 5
@@ -131,8 +211,8 @@ class Planetoid(object):
         # Create meshgrid
         # todo: let a user specify the grid density
         xx, yy = np.mgrid[
-            xmin : xmax : (30 * 10 + 1j),#(30 * topography_levels + 1j),
-            ymin : ymax : (30 * 10 + 1j),#(30 * topography_levels + 1j),
+            xmin : xmax : (30 * 10 + 1j),  # (30 * topography_levels + 1j),
+            ymin : ymax : (30 * 10 + 1j),  # (30 * topography_levels + 1j),
         ]
 
         positions = np.vstack([xx.ravel(), yy.ravel()])
@@ -141,7 +221,7 @@ class Planetoid(object):
         # an attempt at adding slightly more detail to the relief
         kernel.set_bandwidth(bw_method=kernel.factor / 1.2)
         f = np.reshape(kernel(positions).T, xx.shape)
-        self.topos.append(f)
+        self._topos.append(f)
 
         hillshade = self._calculate_hillshade(np.rot90(f), 315, 45)
 
@@ -156,21 +236,22 @@ class Planetoid(object):
 
         cntrs = self._clean_contours(self._get_contour_verts(cset))
 
-        self.contours[cluster] = cntrs
+        self._contours[cluster] = cntrs
 
-        self.generate_hillshade_polygons(
+        self._generate_hillshade_polygons(
             hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
         )
-        self.generate_highlight_polygons(
+        self._generate_highlight_polygons(
             hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
         )
-        self.relief.append(self.generate_relief(f, xx, yy, cntrs, relief_density))
+        self._relief.append(self._generate_relief(f, xx, yy, cntrs, relief_density))
 
         return cntrs
-    
+
     def _get_contour_verts(self, cn):
-        """Get the vertices from the mpl plot to generate our own
-        geometries."""
+        """
+        Get the vertices from the mpl plot to generate our own geometries.
+        """
         cntr = []
         # for each contour line
         for cc in cn.collections:
@@ -187,11 +268,12 @@ class Planetoid(object):
 
         return cntr
 
-    def generate_hillshade_polygons(
+    def _generate_hillshade_polygons(
         self, hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
     ):
+        """Generate the hillshade (shadow) polygons"""
 
-        # self.shadows = list()
+        # self._shadows = list()
 
         # we have to strech it for the opencv function to catch the edges properly
         hs_array = (
@@ -245,13 +327,13 @@ class Planetoid(object):
                             .exterior.coords
                         )
                         cluster_shadows.append(coords)
-        self.shadows.append(cluster_shadows)
+        self._shadows.append(cluster_shadows)
 
-    def generate_highlight_polygons(
+    def _generate_highlight_polygons(
         self, hillshade, xx, yy, xmin, xmax, ymin, ymax, lighting_levels
     ):
 
-        # self.shadows = list()
+        # self._shadows = list()
 
         # we have to strech it for the opencv function to catch the edges properly
         hs_array = (
@@ -305,7 +387,7 @@ class Planetoid(object):
                             .exterior.coords
                         )
                         highlight.append(coords)
-        self.highlight.append(highlight)
+        self._highlight.append(highlight)
 
         # #plot
         # fig = plt.figure(figsize=(8,8))
@@ -315,27 +397,26 @@ class Planetoid(object):
         # plt.imshow(hs_array,cmap='Greys', extent=[xmin, xmax, ymin, ymax])
         # plt.show()
 
-    def get_all_contours(self, topography_levels=20, lighting_levels=20, relief_density=3):
-        """Get all of the contours per class."""
+    def _get_all_contours(
+        self, topography_levels=20, lighting_levels=20, relief_density=3
+    ):
+        """
+        Get all of the contours per class.
+        """
         for cluster in tqdm(
-            np.unique(self.data["Cluster"].values), desc="Generating data"
+            np.unique(self._data["Cluster"].values), desc="Generating data"
         ):
-            points_df = self.data.loc[
-                self.data["Cluster"] == cluster, ["Longitude", "Latitude"]
+            points_df = self._data.loc[
+                self._data["Cluster"] == cluster, ["Longitude", "Latitude"]
             ]
-            self._get_contours(cluster, points_df, topography_levels, lighting_levels, relief_density)
+            self._get_contours(
+                cluster, points_df, topography_levels, lighting_levels, relief_density
+            )
 
-    def generate_relief(
+    def _generate_relief(
         self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
     ):
-        """Still need to have a proper rationale for this apart from it
-        potentially looking good.
-
-        since this effectively represents the gradient of the topography - is it good enough to use
-        this as a proxy for either global winds and eventually repurpose for ocean currents now?
-        Need to think about this carefully.
-        Need to find a way to put a legitimate 'spin' on the primary axis of the planetoid and model this out
-        for the currents
+        """Generate the relief detail for the topography.
         """
 
         # create a matplotlib figure and adjust the width and heights
@@ -389,8 +470,10 @@ class Planetoid(object):
         return stream_container
 
     def _clean_contours(self, cntrs):
-        """Use Shapely to modify the contours to prevent the case where Plotly
-        fills the inverted section instead."""
+        """
+        Use Shapely to modify the contours to prevent the case where Plotly
+        fills the inverted section instead.
+        """
         cleaned = list()
         for ix, line in enumerate(cntrs):
             for il, l in enumerate(line):
@@ -413,7 +496,9 @@ class Planetoid(object):
         return cleaned
 
     def _calculate_hillshade(self, array, azimuth, angle_altitude):
-        """Calculate a hillshade over the generated topography."""
+        """
+        Calculate a hillshade over the generated topography.
+        """
 
         # hacky fix for now - need to trace what's making the mirroring necessary
         azimuth += 180
@@ -430,18 +515,20 @@ class Planetoid(object):
         ) * np.cos(azimuthrad - aspect)
         return 255 * (shaded + 1) / 2
 
-    def plot_surface(self):
-        """This plots the surface layer which we need because we can't set it
-        directly."""
+    def _plot_surface(self):
+        """
+        This plots the surface layer which we need because we can't set it
+        directly.
+        """
         # globe
-        self.fig.add_trace(
+        self._fig.add_trace(
             go.Scattergeo(
                 lon=[-179.9, 179.9, 179.9, -179.9],
                 lat=[89.9, 89.9, -89.9, -89.9],
                 mode="lines",
-                line=dict(width=1, color=self.ocean_colour),
+                line=dict(width=1, color=self._ocean_colour),
                 fill="toself",
-                fillcolor=self.ocean_colour,
+                fillcolor=self._ocean_colour,
                 hoverinfo="skip",
                 opacity=1,
                 showlegend=False,
@@ -450,14 +537,16 @@ class Planetoid(object):
             col=1,
         )
 
-    def plot_shadows(self):
-        """Plot the hillshade-derived shadows."""
+    def _plot_shadows(self):
+        """
+        Plot the hillshade-derived shadows.
+        """
         # globe
-        for cluster in tqdm(self.shadows, desc="Plotting Shadows"):
+        for cluster in tqdm(self._shadows, desc="Plotting Shadows"):
             for ix, shadow in enumerate(cluster):
                 if ix % 2 == 0:
                     shadow_array = np.array(shadow)
-                    self.fig.add_trace(
+                    self._fig.add_trace(
                         go.Scattergeo(
                             lon=list(shadow_array[:, 0]),
                             lat=list(shadow_array[:, 1]),
@@ -466,21 +555,23 @@ class Planetoid(object):
                             line=dict(width=0, color="black"),
                             fill="toself",
                             fillcolor="black",
-                            opacity=0.05 + (ix/len(cluster)*0.1),
+                            opacity=0.05 + (ix / len(cluster) * 0.1),
                             showlegend=False,
                         ),
                         row=2,
                         col=1,
                     )
 
-    def plot_highlight(self):
-        """Plot the hillshade-derived lighting."""
+    def _plot_highlight(self):
+        """
+        Plot the hillshade-derived lighting.
+        """
         # globe
-        for cluster in tqdm(self.highlight, desc="Plotting highlight"):
+        for cluster in tqdm(self._highlight, desc="Plotting highlight"):
             for ix, lighting in enumerate(cluster):
                 if ix % 2 == 0:
                     lighting_array = np.array(lighting)
-                    self.fig.add_trace(
+                    self._fig.add_trace(
                         go.Scattergeo(
                             lon=list(lighting_array[:, 0]),
                             lat=list(lighting_array[:, 1]),
@@ -489,29 +580,31 @@ class Planetoid(object):
                             line=dict(width=0, color="white"),
                             fill="toself",
                             fillcolor="white",
-                            opacity=0.01 + (ix/len(cluster)*0.1),
+                            opacity=0.01 + (ix / len(cluster) * 0.1),
                             showlegend=False,
                         ),
                         row=2,
                         col=1,
                     )
 
-    def plot_contours(self):
-        """Plot the topography."""
-        for cluster, cntrs in tqdm(self.contours.items(), desc="Plotting contours"):
-            #introduce some randomness in the topography layering
+    def _plot_contours(self):
+        """
+        Plot the topography.
+        """
+        for cluster, cntrs in tqdm(self._contours.items(), desc="Plotting contours"):
+            # introduce some randomness in the topography layering
             contours = cntrs.copy()
             dont_shuffle_start = contours[0:5]
             dont_shuffle_end = contours[-2:]
             do_shuffle = contours[5:-2]
             random.shuffle(do_shuffle)
             contours = dont_shuffle_start + do_shuffle + dont_shuffle_end
-            
+
             for ix, line in enumerate(contours):
-                if ix > (self.max_contour - 3) / len(contours) + 2:
+                if ix > (self._max_contour - 3) / len(contours) + 2:
                     if ix % 2 == 0:
                         for l in line:
-                            self.fig.add_trace(
+                            self._fig.add_trace(
                                 go.Scattergeo(
                                     lon=list(l[:, 0]),
                                     lat=list(l[:, 1]),
@@ -522,19 +615,19 @@ class Planetoid(object):
                                         dash="longdashdot",
                                         color="rgb"
                                         + str(
-                                            self.cmap(
-                                                ix / self.max_contour, bytes=True
+                                            self._cmap(
+                                                ix / self._max_contour, bytes=True
                                             )[0:3]
                                         ),
                                     ),
                                     fill="toself",
                                     fillcolor="rgb"
                                     + str(
-                                        self.cmap(ix / self.max_contour, bytes=True)[
+                                        self._cmap(ix / self._max_contour, bytes=True)[
                                             0:3
                                         ]
                                     ),
-                                    opacity=0.1 + ((ix / self.max_contour) * 0.5),
+                                    opacity=0.1 + ((ix / self._max_contour) * 0.5),
                                     showlegend=False,
                                 ),
                                 row=2,
@@ -542,7 +635,7 @@ class Planetoid(object):
                             )
                     else:
                         for l in line:
-                            self.fig.add_trace(
+                            self._fig.add_trace(
                                 go.Scattergeo(
                                     lon=list(l[:, 0]),
                                     lat=list(l[:, 1]),
@@ -553,22 +646,24 @@ class Planetoid(object):
                                         dash="longdashdot",
                                         color="rgb"
                                         + str(
-                                            self.cmap(
-                                                ix / self.max_contour, bytes=True
+                                            self._cmap(
+                                                ix / self._max_contour, bytes=True
                                             )[0:3]
                                         ),
                                     ),
-                                    opacity=0.1 + ((ix / self.max_contour) * 0.5),
+                                    opacity=0.1 + ((ix / self._max_contour) * 0.5),
                                     showlegend=False,
                                 ),
                                 row=2,
                                 col=1,
                             )
 
-    def plot_relief(self):
-        """Plot the relief."""
+    def _plot_relief(self):
+        """
+        Plot the relief.
+        """
         # globe
-        for cluster in tqdm(self.relief, desc="Plotting relief"):
+        for cluster in tqdm(self._relief, desc="Plotting relief"):
 
             for size in np.unique([x[1] for x in cluster]):
 
@@ -588,7 +683,7 @@ class Planetoid(object):
                     ]
                 )
 
-                self.fig.add_trace(
+                self._fig.add_trace(
                     go.Scattergeo(
                         connectgaps=False,
                         lon=list(stream_array[:, 0]),
@@ -598,10 +693,10 @@ class Planetoid(object):
                         line=dict(
                             width=2 * size,
                             # dash='dot',
-                            color='black'#"rgb"
-                            #+ str(
-                            #    self.cmap(int(stream_array.shape[0] / 3), bytes=True)[0:3]
-                            #),
+                            color="black"  # "rgb"
+                            # + str(
+                            #    self._cmap(int(stream_array.shape[0] / 3), bytes=True)[0:3]
+                            # ),
                         ),
                         opacity=0.1 + 0.15 * (1 / np.cos(size) - 1),
                         showlegend=False,
@@ -610,17 +705,19 @@ class Planetoid(object):
                     col=1,
                 )
 
-    def plot_clustered_points(self):
-        """Plot the provided point data."""
+    def _plot_clustered_points(self):
+        """
+        Plot the provided point data.
+        """
 
         # globe
-        self.fig.add_trace(
+        self._fig.add_trace(
             go.Scattergeo(
-                lon=self.data["Longitude"],
-                lat=self.data["Latitude"],
-                marker_color=self.data["Cluster"],
+                lon=self._data["Longitude"],
+                lat=self._data["Latitude"],
+                marker_color=self._data["Cluster"],
                 hoverinfo="text",
-                hovertext=self.data["Cluster"],
+                hovertext=self._data["Cluster"],
                 marker_size=2,
                 showlegend=False
                 #     marker = dict(
@@ -631,10 +728,12 @@ class Planetoid(object):
             col=1,
         )
 
-    def update_geos(self):
-        """Update config for maps."""
+    def _update_geos(self):
+        """
+        Update config for maps.
+        """
         # globe
-        self.fig.update_geos(
+        self._fig._update_geos(
             row=2,
             col=1,
             showland=False,
@@ -651,7 +750,7 @@ class Planetoid(object):
             lataxis=dict(showgrid=True, gridcolor="rgb(102, 102, 102)", gridwidth=1),
         )
 
-    def add_empty_trace(self):
+    def _add_empty_trace(self):
         """Add invisible scatter trace.
 
         This trace is added to help the autoresize logic work.
@@ -659,7 +758,7 @@ class Planetoid(object):
 
         width = int(1920 / 2)
         height = int(1280 / 2)
-        self.fig.add_trace(
+        self._fig.add_trace(
             go.Scatter(
                 x=[0, width],
                 y=[0, height],
@@ -670,9 +769,9 @@ class Planetoid(object):
         )
 
         # Configure axes
-        self.fig.update_xaxes(visible=False, fixedrange=True, range=[0, width])
+        self._fig.update_xaxes(visible=False, fixedrange=True, range=[0, width])
 
-        self.fig.update_yaxes(
+        self._fig.update_yaxes(
             visible=False,
             fixedrange=True,
             range=[0, height],
@@ -680,8 +779,10 @@ class Planetoid(object):
             scaleanchor="x",
         )
 
-    def update_layout(self, planet_name="Planetoids"):
-        """Update layout config."""
+    def _update_layout(self, planet_name="Planetoids"):
+        """
+        Update layout config.
+        """
 
         width = int(1920 / 2)
         height = int(1280 / 2)
@@ -690,7 +791,7 @@ class Planetoid(object):
         image_array = self._add_salt_and_pepper(image_array, 0.001).astype("uint8")
         image = Image.fromarray(image_array)
 
-        self.fig.update_layout(
+        self._fig._update_layout(
             autosize=True,
             width=width,
             height=height,
@@ -715,32 +816,107 @@ class Planetoid(object):
                 )
             ],
         )
-        
-    def fit(self, topography_levels=20, lighting_levels=20, relief_density=3):
-        """Generate data required for terraforming."""
+
+    def fit(
+        self,
+        topography_levels=20,
+        lighting_levels=20,
+        relief_density=3,
+        rescale_coordinates=True,
+    ):
+        """Use the seed data to generate data required to terraform the
+        `Planetoid`.
+
+        This function takes the seed data and constructs the base components required to terraform the planet.
+
+        # **Parameters**
+        ----------
+        `topography_levels` : `int` (default=`20`)  
+            Used to control the number of contours that are generated to represent topographic features.
+
+        `lighting_levels` : `int` (default=`20`)  
+            Used to control the number of contours that are generated to represent hillshade and highlight effects.
+
+        `relief_density` : `int` (default=`3`)  
+            Used to control the level of detail in the relief of the topography, this represents the gradient of topographic features.
+
+        `rescale_coordinates` : `bool` (default=`True`)  
+            Used to specify whether or not input seed `x` and `y` data should be rescaled to global geographic coordinates.
+        """
         # transform 2d components into pseudo lat/longs
-        self._rescale_coordinates()
+        if rescale_coordinates:
+            self._rescale_coordinates()
         # generate contours per class
-        self.get_all_contours(topography_levels, lighting_levels, relief_density)
-        self.data_generated = True
+        self._get_all_contours(topography_levels, lighting_levels, relief_density)
+        self._data_generated = True
 
     def terraform(
         self,
         plot_topography=True,
         plot_points=True,
         plot_lighting=True,
-        projection = 'orthographic',
+        projection="orthographic",
         planet_name="Planetoids",
         render=True,
     ):
-        """Construct a new world."""
-        
+        """Terraform the `Planetoid`.
+
+        This function takes the fit data and generates an interactive plot.ly figure representing the terraformed `Planetoid`.
+        The terraformed world is stored in the `fig` property of the `Planetoid`.
+
+
+        # **Parameters**
+        ----------
+        `plot_topography` : `bool` (default=`True`)  
+            Used to control whether or not the topography should be rendered.
+
+        `plot_points` : `bool` (default=`True`)  
+            Used to control whether or not the seed points should be rendered.
+
+        `plot_lighting` : `bool` (default=`True`)  
+            Used to control whether or not the lighting effects should be rendered.
+
+        `projection` : `string` (default=`"orthographic"`)  
+            Used to control the map projection of the output world.  
+            The default `orthographic` projection produces a 'traditional' 3D globe,
+            however more exotic `Planetoidal` views can be generated using other options.   
+            Any of the available plotly [**ScatterGeo**](https://plot.ly/python/reference/#scattergeo) map projections can be used:
+             - "equirectangular"
+             - "mercator"
+             - "orthographic"
+             - "natural earth"
+             - "kavrayskiy7"
+             - "miller"
+             - "robinson"
+             - "eckert4"
+             - "azimuthal equal area"
+             - "azimuthal equidistant"
+             - "conic equal area"
+             - "conic conformal"
+             - "conic equidistant"
+             - "gnomonic"
+             - "stereographic"
+             - "mollweide"
+             - "hammer"
+             - "transverse mercator"
+             - "albers usa"
+             - "winkel tripel"
+             - "aitoff"
+             - "sinusoidal"
+
+        `planet_name` : `string` (default=`"Planetoids"`)  
+            This is a user-defined title that renders on the output figure.
+
+        `render` : `bool` (default=`True`)  
+            This controls whether or not the terraformed `Planetoid` should be rendered.
+        """
+
         self.projection = projection
-        
-        if not self.data_generated:
+
+        if not self._data_generated:
             raise Exception("Please first run .fit() before attemption to terraform.")
         else:
-            self.fig = make_subplots(
+            self._fig = make_subplots(
                 rows=3,
                 cols=2,
                 vertical_spacing=0.05,
@@ -754,61 +930,144 @@ class Planetoid(object):
                 subplot_titles=(planet_name, ""),
             )
 
-            self.add_empty_trace()
+            self._add_empty_trace()
 
             # identify the maximum number of contours per continent
-            self.max_contour = max([len(contour) for contour in self.contours.values()])
-            self.cmap = cm.get_cmap(self.ecology, self.max_contour + 1)
+            self._max_contour = max(
+                [len(contour) for contour in self._contours.values()]
+            )
+            self._cmap = cm.get_cmap(self.ecology, self._max_contour + 1)
 
-            self.ocean_colour = "rgb" + str(
-                self.cmap(1 / self.max_contour, bytes=True)[0:3]
+            self._ocean_colour = "rgb" + str(
+                self._cmap(1 / self._max_contour, bytes=True)[0:3]
             )
 
-            self.plot_surface()
+            self._plot_surface()
 
             if plot_topography:
-                self.plot_contours()
+                self._plot_contours()
 
-            self.plot_relief()
+            self._plot_relief()
 
             if plot_lighting:
-                self.plot_highlight()
-                self.plot_shadows()
+                self._plot_highlight()
+                self._plot_shadows()
 
             if plot_points:
-                self.plot_clustered_points()
+                self._plot_clustered_points()
 
-            self.update_geos()
+            self._update_geos()
 
-            self.update_layout(planet_name)
+            self._update_layout(planet_name)
 
             if render:
-                self.fig.show()
+                self._fig.show()
 
     def fit_terraform(
         self,
         topography_levels=20,
         lighting_levels=20,
         relief_density=3,
+        rescale_coordinates=True,
         plot_topography=True,
         plot_points=True,
         plot_lighting=True,
-        projection='orthographic',
+        projection="orthographic",
         planet_name="Planetoids",
         render=True,
     ):
-        """Fit and terraform in a single step, akin to fit_transform people are
-        used to."""
-        self.fit(topography_levels=topography_levels, lighting_levels=lighting_levels, relief_density=relief_density)
-        self.terraform(plot_topography, plot_points, plot_lighting, projection, planet_name, render)
+        """Fit and terraform the `Planetoid` in a single step.
 
-    def save(self, filename="planetoid.html", output_type='file', include_plotlyjs=True, auto_open=False):
-        offline.plot(self.fig, filename = filename, output_type=output_type, include_plotlyjs=include_plotlyjs, auto_open=auto_open)
+        This function takes the seed data and constructs the base components required to terraform the planet.  
+        It then takes the fit data and generates an interactive plot.ly figure representing the terraformed `Planetoid`.  
+        The terraformed world is stored in the `fig` property of the `Planetoid`.  
 
+
+        # **Parameters**
+        ----------
+
+        `topography_levels` : `int` (default=`20`)  
+            Used to control the number of contours that are generated to represent topographic features.
+
+        `lighting_levels` : `int` (default=`20`)  
+            Used to control the number of contours that are generated to represent hillshade and highlight effects.
+
+        `relief_density` : `int` (default=`3`)  
+            Used to control the level of detail in the relief of the topography, this represents the gradient of topographic features.
+
+        `rescale_coordinates` : `bool` (default=`True`)  
+            `Bool` used to specify whether or not input seed `x` and `y` data should be rescaled to global geographic coordinates.
+
+        `plot_topography` : `bool` (default=`True`)  
+            Used to control whether or not the topography should be rendered.
+
+        `plot_points` : `bool` (default=`True`)  
+            Used to control whether or not the seed points should be rendered.
+
+        `plot_lighting` : `bool` (default=`True`)  
+            Used to control whether or not the lighting effects should be rendered.
+
+        `projection` : `string` (default=`"orthographic"`)  
+            Used to control the map projection of the output world.  
+            The default `orthographic` projection produces a 'traditional' 3D globe,
+            however more exotic `Planetoidal` views can be generated using other options.  
+            Any of the available plotly [**ScatterGeo**](https://plot.ly/python/reference/#scattergeo) map projections can be used:
+             - "equirectangular"
+             - "mercator"
+             - "orthographic"
+             - "natural earth"
+             - "kavrayskiy7"
+             - "miller"
+             - "robinson"
+             - "eckert4"
+             - "azimuthal equal area"
+             - "azimuthal equidistant"
+             - "conic equal area"
+             - "conic conformal"
+             - "conic equidistant"
+             - "gnomonic"
+             - "stereographic"
+             - "mollweide"
+             - "hammer"
+             - "transverse mercator"
+             - "albers usa"
+             - "winkel tripel"
+             - "aitoff"
+             - "sinusoidal"
+
+        `planet_name` : `string` (default=`"Planetoids"`)  
+            This is a user-defined title that renders on the output figure.
+
+        `render` : `bool` (default=`True`)  
+            This controls whether or not the terraformed `Planetoid` should be rendered.
+        """
+        self.fit(
+            topography_levels=topography_levels,
+            lighting_levels=lighting_levels,
+            relief_density=relief_density,
+            rescale_coordinates=rescale_coordinates,
+        )
+        self.terraform(
+            plot_topography, plot_points, plot_lighting, projection, planet_name, render
+        )
+
+    def save(
+        self,
+        filename="planetoid.html",
+        output_type="file",
+        include_plotlyjs=True,
+        auto_open=False,
+    ):
+        offline.plot(
+            self._fig,
+            filename=filename,
+            output_type=output_type,
+            include_plotlyjs=include_plotlyjs,
+            auto_open=auto_open,
+        )
 
     def _add_salt_and_pepper(self, gb, prob):
         """Adds "Salt & Pepper" noise to an image.
-
         gb: should be one-channel image with pixels in [0, 1] range
         prob: probability (threshold) that controls level of noise
         """
