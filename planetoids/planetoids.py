@@ -40,7 +40,9 @@ class Planetoid(object):
         self.x = None
         self.cluster_field = None
         self.ecology = None
-        random_state=None
+        self.random_state=None
+        
+        self.data_generated = False
 
         if isinstance(data, pd.DataFrame):
             self.data = data
@@ -685,7 +687,7 @@ class Planetoid(object):
         height = int(1280 / 2)
 
         image_array = np.zeros((width, height))
-        image_array = add_salt_and_pepper(image_array, 0.001).astype("uint8")
+        image_array = self._add_salt_and_pepper(image_array, 0.001).astype("uint8")
         image = Image.fromarray(image_array)
 
         self.fig.update_layout(
@@ -720,6 +722,7 @@ class Planetoid(object):
         self._rescale_coordinates()
         # generate contours per class
         self.get_all_contours(topography_levels, lighting_levels, relief_density)
+        self.data_generated = True
 
     def terraform(
         self,
@@ -730,51 +733,54 @@ class Planetoid(object):
         render=True,
     ):
         """Construct a new world."""
+        
+        if not self.data_generated:
+            raise Exception("Please first run .fit() before attemption to terraform.")
+        else:
+            self.fig = make_subplots(
+                rows=3,
+                cols=2,
+                vertical_spacing=0.05,
+                # column_widths=[0.5, 0.5],
+                row_heights=[0.05, 0.93, 0.02],
+                specs=[
+                    [None, None],
+                    [{"type": "scattergeo", "colspan": 2}, None],
+                    [None, None],
+                ],
+                subplot_titles=(planet_name, ""),
+            )
 
-        self.fig = make_subplots(
-            rows=3,
-            cols=2,
-            vertical_spacing=0.05,
-            # column_widths=[0.5, 0.5],
-            row_heights=[0.05, 0.93, 0.02],
-            specs=[
-                [None, None],
-                [{"type": "scattergeo", "colspan": 2}, None],
-                [None, None],
-            ],
-            subplot_titles=(planet_name, ""),
-        )
+            self.add_empty_trace()
 
-        self.add_empty_trace()
+            # identify the maximum number of contours per continent
+            self.max_contour = max([len(contour) for contour in self.contours.values()])
+            self.cmap = cm.get_cmap(self.ecology, self.max_contour + 1)
 
-        # identify the maximum number of contours per continent
-        self.max_contour = max([len(contour) for contour in self.contours.values()])
-        self.cmap = cm.get_cmap(self.ecology, self.max_contour + 1)
+            self.ocean_colour = "rgb" + str(
+                self.cmap(1 / self.max_contour, bytes=True)[0:3]
+            )
 
-        self.ocean_colour = "rgb" + str(
-            self.cmap(1 / self.max_contour, bytes=True)[0:3]
-        )
+            self.plot_surface()
 
-        self.plot_surface()
+            if plot_topography:
+                self.plot_contours()
 
-        if plot_topography:
-            self.plot_contours()
+            self.plot_relief()
 
-        self.plot_relief()
+            if plot_lighting:
+                self.plot_highlight()
+                self.plot_shadows()
 
-        if plot_lighting:
-            self.plot_highlight()
-            self.plot_shadows()
+            if plot_points:
+                self.plot_clustered_points()
 
-        if plot_points:
-            self.plot_clustered_points()
+            self.update_geos()
 
-        self.update_geos()
+            self.update_layout(planet_name)
 
-        self.update_layout(planet_name)
-
-        if render:
-            self.fig.show()
+            if render:
+                self.fig.show()
 
     def fit_terraform(
         self,
@@ -792,19 +798,19 @@ class Planetoid(object):
         self.fit(topography_levels=topography_levels, lighting_levels=lighting_levels, relief_density=relief_density)
         self.terraform(plot_topography, plot_points, plot_lighting, planet_name, render)
 
-    def save(self):
-        offline.plot(data, filename="file.html")
+    def save(self, filename="planetoid.html", output_type='file', include_plotlyjs=True, auto_open=False):
+        offline.plot(self.fig, filename = filename, output_type=output_type, include_plotlyjs=include_plotlyjs, auto_open=auto_open)
 
 
-def add_salt_and_pepper(gb, prob):
-    """Adds "Salt & Pepper" noise to an image.
+    def _add_salt_and_pepper(self, gb, prob):
+        """Adds "Salt & Pepper" noise to an image.
 
-    gb: should be one-channel image with pixels in [0, 1] range
-    prob: probability (threshold) that controls level of noise
-    """
+        gb: should be one-channel image with pixels in [0, 1] range
+        prob: probability (threshold) that controls level of noise
+        """
 
-    rnd = np.random.rand(gb.shape[0], gb.shape[1])
-    noisy = gb.copy()
-    noisy[rnd < prob] = 0
-    noisy[rnd > 1 - prob] = 255
-    return noisy
+        rnd = np.random.rand(gb.shape[0], gb.shape[1])
+        noisy = gb.copy()
+        noisy[rnd < prob] = 0
+        noisy[rnd > 1 - prob] = 255
+        return noisy
