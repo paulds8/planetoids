@@ -1,5 +1,5 @@
-# Planetoids
-<img src=./docs/astronaut.svg width=100px align="right">
+<h1><img src=./docs/astronaut.svg width=100px align="left">Planetoids</h1>
+
 Procedurally generated worlds.
 
 
