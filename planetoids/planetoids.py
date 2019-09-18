@@ -733,7 +733,7 @@ class Planetoid(object):
         Update config for maps.
         """
         # globe
-        self._fig._update_geos(
+        self._fig.update_geos(
             row=2,
             col=1,
             showland=False,
@@ -791,12 +791,12 @@ class Planetoid(object):
         image_array = self._add_salt_and_pepper(image_array, 0.001).astype("uint8")
         image = Image.fromarray(image_array)
 
-        self._fig._update_layout(
+        self._fig.update_layout(
             autosize=True,
             width=width,
             height=height,
             title_text=planet_name,
-            showlegend=True,
+            showlegend=False,
             dragmode="pan",
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
@@ -1056,9 +1056,30 @@ class Planetoid(object):
         filename="planetoid.html",
         output_type="file",
         include_plotlyjs=True,
-        auto_open=False,
+        auto_open=False
     ):
-        offline.plot(
+        """Save the `Planetoid` to a file.
+
+        This function takes the graph object and provides a wrapper to save the terraformed `Planetoid`.  
+
+        # **Parameters**
+        ----------
+
+        `filename` : `string` (default=`"planetoid.html"`)  
+            Set this variable to name and save your output file. The default will create an HTML file in
+            the current working directory called "planetoid.html".
+            
+        `output_type` : `string` (default=`"file"`)  
+            Set this variable to the intended output type, either `"file"` or `"div"`.
+            
+        `include_plotlyjs` : `bool` (default=`True`)
+            Allows a user to include or exclude the plotly.js library in the export.
+            
+        `auto_open` : `bool` (default=`False`)
+            If True, the `Planetoid` will open in your web browser after saving.
+
+        """
+        offline.plot(       
             self._fig,
             filename=filename,
             output_type=output_type,

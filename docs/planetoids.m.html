@@ -1811,7 +1811,7 @@ table {
 <span class="sd">        Update config for maps.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># globe</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_update_geos</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">update_geos</span><span class="p">(</span>
             <span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
             <span class="n">col</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">showland</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
@@ -1869,12 +1869,12 @@ table {
         <span class="n">image_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_salt_and_pepper</span><span class="p">(</span><span class="n">image_array</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;uint8&quot;</span><span class="p">)</span>
         <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">image_array</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_update_layout</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span>
             <span class="n">autosize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
             <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
             <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
             <span class="n">title_text</span><span class="o">=</span><span class="n">planet_name</span><span class="p">,</span>
-            <span class="n">showlegend</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+            <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
             <span class="n">dragmode</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span>
             <span class="n">plot_bgcolor</span><span class="o">=</span><span class="s2">&quot;rgba(0,0,0,0)&quot;</span><span class="p">,</span>
             <span class="n">paper_bgcolor</span><span class="o">=</span><span class="s2">&quot;rgba(0,0,0,0)&quot;</span><span class="p">,</span>
@@ -2134,9 +2134,30 @@ table {
         <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;planetoid.html&quot;</span><span class="p">,</span>
         <span class="n">output_type</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
         <span class="n">include_plotlyjs</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="n">auto_open</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+        <span class="n">auto_open</span><span class="o">=</span><span class="bp">False</span>
     <span class="p">):</span>
-        <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="sd">&quot;&quot;&quot;Save the `Planetoid` to a file.</span>
+
+<span class="sd">        This function takes the graph object and provides a wrapper to save the terraformed `Planetoid`.  </span>
+
+<span class="sd">        # **Parameters**</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        `filename` : `string` (default=`&quot;planetoid.html&quot;`)  </span>
+<span class="sd">            Set this variable to name and save your output file. The default will create an HTML file in</span>
+<span class="sd">            the current working directory called &quot;planetoid.html&quot;.</span>
+<span class="sd">            </span>
+<span class="sd">        `output_type` : `string` (default=`&quot;file&quot;`)  </span>
+<span class="sd">            Set this variable to the intended output type, either `&quot;file&quot;` or `&quot;div&quot;`.</span>
+<span class="sd">            </span>
+<span class="sd">        `include_plotlyjs` : `bool` (default=`True`)</span>
+<span class="sd">            Allows a user to include or exclude the plotly.js library in the export.</span>
+<span class="sd">            </span>
+<span class="sd">        `auto_open` : `bool` (default=`False`)</span>
+<span class="sd">            If True, the `Planetoid` will open in your web browser after saving.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>       
             <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">,</span>
             <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
             <span class="n">output_type</span><span class="o">=</span><span class="n">output_type</span><span class="p">,</span>
@@ -2903,7 +2924,7 @@ optionally clustered.</p>
 <span class="sd">        Update config for maps.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># globe</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_update_geos</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">update_geos</span><span class="p">(</span>
             <span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
             <span class="n">col</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">showland</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
@@ -2961,12 +2982,12 @@ optionally clustered.</p>
         <span class="n">image_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_salt_and_pepper</span><span class="p">(</span><span class="n">image_array</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;uint8&quot;</span><span class="p">)</span>
         <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">image_array</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">_update_layout</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span>
             <span class="n">autosize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
             <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
             <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
             <span class="n">title_text</span><span class="o">=</span><span class="n">planet_name</span><span class="p">,</span>
-            <span class="n">showlegend</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+            <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
             <span class="n">dragmode</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span>
             <span class="n">plot_bgcolor</span><span class="o">=</span><span class="s2">&quot;rgba(0,0,0,0)&quot;</span><span class="p">,</span>
             <span class="n">paper_bgcolor</span><span class="o">=</span><span class="s2">&quot;rgba(0,0,0,0)&quot;</span><span class="p">,</span>
@@ -3226,9 +3247,30 @@ optionally clustered.</p>
         <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;planetoid.html&quot;</span><span class="p">,</span>
         <span class="n">output_type</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
         <span class="n">include_plotlyjs</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="n">auto_open</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+        <span class="n">auto_open</span><span class="o">=</span><span class="bp">False</span>
     <span class="p">):</span>
-        <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="sd">&quot;&quot;&quot;Save the `Planetoid` to a file.</span>
+
+<span class="sd">        This function takes the graph object and provides a wrapper to save the terraformed `Planetoid`.  </span>
+
+<span class="sd">        # **Parameters**</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        `filename` : `string` (default=`&quot;planetoid.html&quot;`)  </span>
+<span class="sd">            Set this variable to name and save your output file. The default will create an HTML file in</span>
+<span class="sd">            the current working directory called &quot;planetoid.html&quot;.</span>
+<span class="sd">            </span>
+<span class="sd">        `output_type` : `string` (default=`&quot;file&quot;`)  </span>
+<span class="sd">            Set this variable to the intended output type, either `&quot;file&quot;` or `&quot;div&quot;`.</span>
+<span class="sd">            </span>
+<span class="sd">        `include_plotlyjs` : `bool` (default=`True`)</span>
+<span class="sd">            Allows a user to include or exclude the plotly.js library in the export.</span>
+<span class="sd">            </span>
+<span class="sd">        `auto_open` : `bool` (default=`False`)</span>
+<span class="sd">            If True, the `Planetoid` will open in your web browser after saving.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>       
             <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">,</span>
             <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
             <span class="n">output_type</span><span class="o">=</span><span class="n">output_type</span><span class="p">,</span>
@@ -3544,6 +3586,19 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
 
     
   
+    <div class="desc"><p>Save the <code>Planetoid</code> to a file.</p>
+<p>This function takes the graph object and provides a wrapper to save the terraformed <code>Planetoid</code>.  </p>
+<h1><strong>Parameters</strong></h1>
+<hr />
+<p><code>filename</code> : <code>string</code> (default=<code>"planetoid.html"</code>)<br />
+    Set this variable to name and save your output file. The default will create an HTML file in
+    the current working directory called "planetoid.html".</p>
+<p><code>output_type</code> : <code>string</code> (default=<code>"file"</code>)<br />
+    Set this variable to the intended output type, either <code>"file"</code> or <code>"div"</code>.</p>
+<p><code>include_plotlyjs</code> : <code>bool</code> (default=<code>True</code>)
+    Allows a user to include or exclude the plotly.js library in the export.</p>
+<p><code>auto_open</code> : <code>bool</code> (default=<code>False</code>)
+    If True, the <code>Planetoid</code> will open in your web browser after saving.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-planetoids.Planetoid.save', this);">Show source &equiv;</a></p>
   <div id="source-planetoids.Planetoid.save" class="source">
@@ -3552,9 +3607,26 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
     <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;planetoid.html&quot;</span><span class="p">,</span>
     <span class="n">output_type</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
     <span class="n">include_plotlyjs</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-    <span class="n">auto_open</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+    <span class="n">auto_open</span><span class="o">=</span><span class="bp">False</span>
 <span class="p">):</span>
-    <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="sd">&quot;&quot;&quot;Save the `Planetoid` to a file.</span>
+<span class="sd">    This function takes the graph object and provides a wrapper to save the terraformed `Planetoid`.  </span>
+<span class="sd">    # **Parameters**</span>
+<span class="sd">    ----------</span>
+<span class="sd">    `filename` : `string` (default=`&quot;planetoid.html&quot;`)  </span>
+<span class="sd">        Set this variable to name and save your output file. The default will create an HTML file in</span>
+<span class="sd">        the current working directory called &quot;planetoid.html&quot;.</span>
+<span class="sd">        </span>
+<span class="sd">    `output_type` : `string` (default=`&quot;file&quot;`)  </span>
+<span class="sd">        Set this variable to the intended output type, either `&quot;file&quot;` or `&quot;div&quot;`.</span>
+<span class="sd">        </span>
+<span class="sd">    `include_plotlyjs` : `bool` (default=`True`)</span>
+<span class="sd">        Allows a user to include or exclude the plotly.js library in the export.</span>
+<span class="sd">        </span>
+<span class="sd">    `auto_open` : `bool` (default=`False`)</span>
+<span class="sd">        If True, the `Planetoid` will open in your web browser after saving.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>       
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">,</span>
         <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
         <span class="n">output_type</span><span class="o">=</span><span class="n">output_type</span><span class="p">,</span>
