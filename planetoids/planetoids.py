@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
-import umap
 import pyproj  # pip install pyproj==2.2.1 --no-cache-dir
 import plotly.graph_objects as go
 from plotly import offline
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from matplotlib import colors
 import scipy.stats as st
 import cv2 as cv
 from tqdm.autonotebook import tqdm
@@ -50,7 +50,8 @@ class Planetoid(object):
         Any one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)
 
     `random_state` : `int`, optional (default=`None`)  
-        Optional `integer` to seed the random number generators for reproducibility if required
+        Optional `integer` to seed the random number generators.
+        By default, a random seed is calculated based on the provided seed data on your behalf so reproducibility is guaranteed.
 
     # **Examples**
     ----------
@@ -58,7 +59,7 @@ class Planetoid(object):
     """
 
     def __init__(
-        self, data, y, x, cluster_field=None, ecology="gist_earth", random_state=None
+        self, data, y, x, cluster_field=None, ecology=None, random_state=None
     ):
         self._data = None
         self._y = None
@@ -68,7 +69,7 @@ class Planetoid(object):
         self._random_state = None
 
         self._data_generated = False
-
+        
         if isinstance(data, pd.DataFrame):
             self._data = data
         else:
@@ -85,23 +86,32 @@ class Planetoid(object):
             self._cluster_field = cluster_field
         else:
             raise ValueError("Cluster field not in provided DataFrame")
-        try:
-            cm.get_cmap(ecology, 1)
-            self._ecology = ecology
-        except Exception as e:
-            raise ValueError(e)
+        
         if isinstance(random_state, int):
             self._random_state = random_state
             np.random.seed(self.random_state)
             random.seed(self.random_state)
             cv.setRNGSeed(self.random_state)
         elif random_state is None:
-            pass
+            random_state = self._data.var().sum().astype(int)
+            self._random_state = random_state
+            np.random.seed(self.random_state)
+            random.seed(self.random_state)
+            cv.setRNGSeed(self.random_state)
         else:
             raise ValueError("Please provide an integer value for your random seed")
+        
+        if ecology is not None:
+            try:
+                cm.get_cmap(ecology, 1)
+                self._ecology = ecology
+            except Exception as e:
+                raise ValueError(e)
+        else:
+            self._ecology = colors.ListedColormap(np.random.rand(256,3))
 
         # only keep what we need
-        self._data = self._data[[y, x, cluster_field]]
+        self._data = self._data[[y, x, cluster_field]].copy()
 
         # set the rest
         self._contours = dict()
@@ -149,12 +159,22 @@ class Planetoid(object):
         Any one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)
         """
         return self._ecology
+    
+    def change_ecology(self, ecology):
+        """
+        Change the `Planetoid` ecology to one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)
+        """
+        try:
+            cm.get_cmap(ecology, 1)
+            self._ecology = ecology
+        except Exception as e:
+            raise ValueError(e)
 
     @property
     def random_state(self):
         """
-        Optional `integer` to seed the random number generators for
-        reproducibility if required.
+        Optional `integer` to seed the random number generators.
+        By default, a random seed is calculated based on the provided seed data on your behalf so reproducibility is guaranteed.
         """
         return self._random_state
     
@@ -555,7 +575,7 @@ class Planetoid(object):
                             line=dict(width=0, color="black"),
                             fill="toself",
                             fillcolor="black",
-                            opacity=0.05 + (ix / len(cluster) * 0.1),
+                            opacity=0.05 + (ix / len(cluster) * 0.05),
                             showlegend=False,
                         ),
                         row=2,
@@ -580,7 +600,7 @@ class Planetoid(object):
                             line=dict(width=0, color="white"),
                             fill="toself",
                             fillcolor="white",
-                            opacity=0.01 + (ix / len(cluster) * 0.1),
+                            opacity=0.01 + (ix / len(cluster) * 0.05),
                             showlegend=False,
                         ),
                         row=2,
@@ -822,7 +842,7 @@ class Planetoid(object):
         topography_levels=20,
         lighting_levels=20,
         relief_density=3,
-        rescale_coordinates=True,
+        rescale_coordinates=True
     ):
         """Use the seed data to generate data required to terraform the
         `Planetoid`.
@@ -843,6 +863,18 @@ class Planetoid(object):
         `rescale_coordinates` : `bool` (default=`True`)  
             Used to specify whether or not input seed `x` and `y` data should be rescaled to global geographic coordinates.
         """
+        if isinstance(topography_levels, int) and topography_levels>=5:
+            pass
+        else:
+            raise ValueError('Please provide a positive integer value of 5+ for topography_levels')
+        if isinstance(lighting_levels, int) and lighting_levels>=5:
+            pass
+        else:
+            raise ValueError('Please provide a positive integer value of 5+ for lighting_levels')
+        if isinstance(relief_density, int) and relief_density>=1:
+            pass
+        else:
+            raise ValueError('Please provide a positive integer value of 1+ for relief_density')
         # transform 2d components into pseudo lat/longs
         if rescale_coordinates:
             self._rescale_coordinates()
@@ -854,7 +886,8 @@ class Planetoid(object):
         self,
         plot_topography=True,
         plot_points=True,
-        plot_lighting=True,
+        plot_highlight=True,
+        plot_hillshade=True,
         projection="orthographic",
         planet_name="Planetoids",
         render=True,
@@ -873,8 +906,11 @@ class Planetoid(object):
         `plot_points` : `bool` (default=`True`)  
             Used to control whether or not the seed points should be rendered.
 
-        `plot_lighting` : `bool` (default=`True`)  
-            Used to control whether or not the lighting effects should be rendered.
+        `plot_highlight` : `bool` (default=`True`)  
+            Used to control whether or not the highlight effect should be rendered.
+            
+        `plot_hillshade` : `bool` (default=`True`)  
+            Used to control whether or not the hillshade effect should be rendered.
 
         `projection` : `string` (default=`"orthographic"`)  
             Used to control the map projection of the output world.  
@@ -949,8 +985,9 @@ class Planetoid(object):
 
             self._plot_relief()
 
-            if plot_lighting:
+            if plot_highlight:
                 self._plot_highlight()
+            if plot_hillshade:    
                 self._plot_shadows()
 
             if plot_points:
@@ -971,7 +1008,8 @@ class Planetoid(object):
         rescale_coordinates=True,
         plot_topography=True,
         plot_points=True,
-        plot_lighting=True,
+        plot_highlight=True,
+        plot_hillshade=True,
         projection="orthographic",
         planet_name="Planetoids",
         render=True,
@@ -1004,8 +1042,11 @@ class Planetoid(object):
         `plot_points` : `bool` (default=`True`)  
             Used to control whether or not the seed points should be rendered.
 
-        `plot_lighting` : `bool` (default=`True`)  
-            Used to control whether or not the lighting effects should be rendered.
+        `plot_highlight` : `bool` (default=`True`)  
+            Used to control whether or not the highlight effect should be rendered.
+            
+        `plot_hillshade` : `bool` (default=`True`)  
+            Used to control whether or not the hillshade effect should be rendered.
 
         `projection` : `string` (default=`"orthographic"`)  
             Used to control the map projection of the output world.  
@@ -1048,7 +1089,7 @@ class Planetoid(object):
             rescale_coordinates=rescale_coordinates,
         )
         self.terraform(
-            plot_topography, plot_points, plot_lighting, projection, planet_name, render
+            plot_topography, plot_points, plot_highlight, plot_hillshade, projection, planet_name, render
         )
 
     def save(
