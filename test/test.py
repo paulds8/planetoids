@@ -57,7 +57,7 @@ def test__get_all_contours():
     with open("test/contours.pickle", "rb") as handle:
         contours = pickle.load(handle)
 
-    for k, v in planet.contours.items():
+    for k, v in planet._contours.items():
         for ix, vv in enumerate(v):
             for ixx, vvv in enumerate(vv):
                 np.testing.assert_almost_equal(vvv, contours[k][ix][ixx], verbose=True)
@@ -185,7 +185,7 @@ def test__generate_hillshade_polygons():
     planet._generate_hillshade_polygons(
         np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
     )
-    hs_poly = planet.shadows
+    hs_poly = planet._shadows
     # with open("test/hs_poly.pickle", "wb") as handle:
     #     pickle.dump(hs_poly, handle)
 
@@ -203,7 +203,7 @@ def test__generate_highlight_polygons():
     planet._generate_highlight_polygons(
         np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
     )
-    highlight_poly = planet.highlight
+    highlight_poly = planet._highlight
     # with open("test/highlight_poly.pickle", "wb") as handle:
     #     pickle.dump(highlight_poly, handle)
 
