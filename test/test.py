@@ -276,7 +276,7 @@ def test_add_salt_and_pepper():
     image_array = np.zeros((100, 100))
     snp = planet._add_salt_and_pepper(image_array, 0.1)
     # np.save("test/salt_and_pepper", snp)
-    # np.testing.assert_array_almost_equal(snp, np.load("test/salt_and_pepper.npy"))
+    np.testing.assert_array_almost_equal(snp, np.load("test/salt_and_pepper.npy"))
 
 
 def test_save():
