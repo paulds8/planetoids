@@ -1,27 +1,22 @@
+import random
 import numpy as np
 import pandas as pd
-import pyproj  # pip install pyproj==2.2.1 --no-cache-dir
 import plotly.graph_objects as go
-from plotly import offline
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib import colors
 import scipy.stats as st
 import cv2 as cv
-from tqdm.autonotebook import tqdm
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from functools import reduce
 from PIL import Image
+from plotly import offline
+from plotly.subplots import make_subplots
+from sklearn.preprocessing import MinMaxScaler
 from shapely.geometry import asPoint
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
 from shapely.ops import unary_union
-import random
-
-# from shapely.geometry import MultiPoint
-# from shapely.ops import transform
-# from functools import partial
-from functools import reduce
-from plotly.subplots import make_subplots
+from tqdm.autonotebook import tqdm
 
 
 class Planetoid(object):

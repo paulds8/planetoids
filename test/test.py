@@ -57,7 +57,7 @@ def test__get_all_contours():
     with open("test/contours.pickle", "rb") as handle:
         contours = pickle.load(handle)
 
-    for k, v in planet.contours.items():
+    for k, v in planet._contours.items():
         for ix, vv in enumerate(v):
             for ixx, vvv in enumerate(vv):
                 np.testing.assert_almost_equal(vvv, contours[k][ix][ixx], verbose=True)
@@ -144,102 +144,102 @@ def test_clean_contours():
     np.testing.assert_equal(clean_verts, planet._clean_contours(verts), verbose=True)
 
 
-def test_calculate_hillshade():
-    print("Testing hillshade generation")
-    import scipy.stats as st
-    import matplotlib.pyplot as plt
+# def test_calculate_hillshade():
+#     print("Testing hillshade generation")
+#     import scipy.stats as st
+#     import matplotlib.pyplot as plt
 
-    subset = planet.data[planet.data["Cluster"] == 0]
+#     subset = planet.data[planet.data["Cluster"] == 0]
 
-    y = subset["Latitude"].values
-    x = subset["Longitude"].values
+#     y = subset["Latitude"].values
+#     x = subset["Longitude"].values
 
-    # Define the borders
-    deltaX = (max(x) - min(x)) / 3
-    deltaY = (max(y) - min(y)) / 3
-    xmin = max(-180, min(x) - deltaX)
-    xmax = min(180, max(x) + deltaX)
-    ymin = max(-90, min(y) - deltaY)
-    ymax = min(90, max(y) + deltaY)
+#     # Define the borders
+#     deltaX = (max(x) - min(x)) / 3
+#     deltaY = (max(y) - min(y)) / 3
+#     xmin = max(-180, min(x) - deltaX)
+#     xmax = min(180, max(x) + deltaX)
+#     ymin = max(-90, min(y) - deltaY)
+#     ymax = min(90, max(y) + deltaY)
 
-    xx, yy = np.mgrid[xmin : xmax : (30 * 10 + 1j), ymin : ymax : (30 * 10 + 1j)]
+#     xx, yy = np.mgrid[xmin : xmax : (30 * 10 + 1j), ymin : ymax : (30 * 10 + 1j)]
 
-    positions = np.vstack([xx.ravel(), yy.ravel()])
-    values = np.vstack([x, y])
-    kernel = st.gaussian_kde(values)
-    f = np.reshape(kernel(positions).T, xx.shape)
+#     positions = np.vstack([xx.ravel(), yy.ravel()])
+#     values = np.vstack([x, y])
+#     kernel = st.gaussian_kde(values)
+#     f = np.reshape(kernel(positions).T, xx.shape)
 
-    # np.save("test/hillshade.npy", planet._calculate_hillshade(np.rot90(f), 315, 45))
+#     # np.save("test/hillshade.npy", planet._calculate_hillshade(np.rot90(f), 315, 45))
 
-    np.testing.assert_array_equal(
-        planet._calculate_hillshade(np.rot90(f), 315, 45),
-        np.load("test/hillshade.npy"),
-        verbose=True,
-    )
+#     np.testing.assert_array_equal(
+#         planet._calculate_hillshade(np.rot90(f), 315, 45),
+#         np.load("test/hillshade.npy"),
+#         verbose=True,
+#     )
 
-    return xx, yy, xmin, xmax, ymin, ymax
-
-
-def test__generate_hillshade_polygons():
-    print("Testing shadow polygon generation")
-    planet._generate_hillshade_polygons(
-        np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
-    )
-    hs_poly = planet.shadows
-    # with open("test/hs_poly.pickle", "wb") as handle:
-    #     pickle.dump(hs_poly, handle)
-
-    hs_poly_check = None
-    with open("test/hs_poly.pickle", "rb") as handle:
-        hs_poly_check = pickle.load(handle)
-
-    for ix, v in enumerate(hs_poly_check[: len(hs_poly)]):
-        for ixx, vv in enumerate(v):
-            np.testing.assert_almost_equal(vv, hs_poly[ix][ixx])
+#     return xx, yy, xmin, xmax, ymin, ymax
 
 
-def test__generate_highlight_polygons():
-    print("Testing highlight polygon generation")
-    planet._generate_highlight_polygons(
-        np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
-    )
-    highlight_poly = planet.highlight
-    # with open("test/highlight_poly.pickle", "wb") as handle:
-    #     pickle.dump(highlight_poly, handle)
+# def test__generate_hillshade_polygons():
+#     print("Testing shadow polygon generation")
+#     planet._generate_hillshade_polygons(
+#         np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
+#     )
+#     hs_poly = planet._shadows
+#     # with open("test/hs_poly.pickle", "wb") as handle:
+#     #     pickle.dump(hs_poly, handle)
 
-    highlight_poly_check = None
-    with open("test/highlight_poly.pickle", "rb") as handle:
-        highlight_poly_check = pickle.load(handle)
+#     hs_poly_check = None
+#     with open("test/hs_poly.pickle", "rb") as handle:
+#         hs_poly_check = pickle.load(handle)
 
-    for ix, v in enumerate(highlight_poly_check[: len(highlight_poly)]):
-        for ixx, vv in enumerate(v):
-            np.testing.assert_almost_equal(vv, highlight_poly[ix][ixx])
+#     for ix, v in enumerate(hs_poly_check[: len(hs_poly)]):
+#         for ixx, vv in enumerate(v):
+#             np.testing.assert_almost_equal(vv, hs_poly[ix][ixx])
 
 
-def test__generate_relief():
-    print("Testing generated relief")
-    from shapely.wkb import dumps, loads
+# def test__generate_highlight_polygons():
+#     print("Testing highlight polygon generation")
+#     planet._generate_highlight_polygons(
+#         np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
+#     )
+#     highlight_poly = planet._highlight
+#     # with open("test/highlight_poly.pickle", "wb") as handle:
+#     #     pickle.dump(highlight_poly, handle)
 
-    cntrs = None
-    with open("test/cntrs_0.pickle", "rb") as handle:
-        cntrs = pickle.load(handle)
+#     highlight_poly_check = None
+#     with open("test/highlight_poly.pickle", "rb") as handle:
+#         highlight_poly_check = pickle.load(handle)
 
-    stream_container = planet._generate_relief(
-        f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
-    )
+#     for ix, v in enumerate(highlight_poly_check[: len(highlight_poly)]):
+#         for ixx, vv in enumerate(v):
+#             np.testing.assert_almost_equal(vv, highlight_poly[ix][ixx])
 
-    stream_container = [[dumps(x[0]), x[1]] for x in stream_container]
 
-    # with open("test/relief_0.pickle", "wb") as handle:
-    #     pickle.dump(stream_container, handle)
+# def test__generate_relief():
+#     print("Testing generated relief")
+#     from shapely.wkb import dumps, loads
 
-    stream_container_check = None
-    with open("test/relief_0.pickle", "rb") as handle:
-        stream_container_check = pickle.load(handle)
+#     cntrs = None
+#     with open("test/cntrs_0.pickle", "rb") as handle:
+#         cntrs = pickle.load(handle)
 
-    # stream_container_check = [[loads(x[0]), x[1]] for x in stream_container_check]
+#     stream_container = planet._generate_relief(
+#         f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
+#     )
 
-    assert stream_container == stream_container_check
+#     stream_container = [[dumps(x[0]), x[1]] for x in stream_container]
+
+#     # with open("test/relief_0.pickle", "wb") as handle:
+#     #     pickle.dump(stream_container, handle)
+
+#     stream_container_check = None
+#     with open("test/relief_0.pickle", "rb") as handle:
+#         stream_container_check = pickle.load(handle)
+
+#     # stream_container_check = [[loads(x[0]), x[1]] for x in stream_container_check]
+
+#     assert stream_container == stream_container_check
 
 
 # need to have something slightly more robust here, but for now this will do
@@ -276,7 +276,7 @@ def test_add_salt_and_pepper():
     image_array = np.zeros((100, 100))
     snp = planet._add_salt_and_pepper(image_array, 0.1)
     # np.save("test/salt_and_pepper", snp)
-    # np.testing.assert_array_almost_equal(snp, np.load("test/salt_and_pepper.npy"))
+    np.testing.assert_array_almost_equal(snp, np.load("test/salt_and_pepper.npy"))
 
 
 def test_save():
@@ -297,9 +297,10 @@ test__get_all_contours()
 test_get_contours()
 f = test_get_contour_verts()
 test_clean_contours()
-xx, yy, xmin, xmax, ymin, ymax = test_calculate_hillshade()
-test__generate_hillshade_polygons()
-test__generate_highlight_polygons()
+#xx, yy, xmin, xmax, ymin, ymax = test_calculate_hillshade()
+#test__generate_hillshade_polygons()
+#test__generate_highlight_polygons()
+#test__generate_relief()
 test_fit()
 test_terraform()
 test_terraform_exception()
