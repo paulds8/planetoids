@@ -14,3 +14,8 @@ venv/pyvenv.cfg
 .vscode/settings.json
 demo.ipynb
 planetoids/__pycache__/planetoids.cpython-37.pyc
+.ipynb_checkpoints/demo-checkpoint.ipynb
+.vscode/settings.json
+demo.ipynb
+planetoids/__pycache__/__init__.cpython-37.pyc
+planetoids/__pycache__/planetoids.cpython-37.pyc
