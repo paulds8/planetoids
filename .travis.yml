@@ -4,5 +4,6 @@ python:
 cache: pip
 install:
   - pip install -r requirements.txt
+before_install: cd planetoids
 script:
   - python test/test.py
