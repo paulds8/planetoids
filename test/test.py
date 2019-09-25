@@ -144,40 +144,40 @@ def test_clean_contours():
     np.testing.assert_equal(clean_verts, planet._clean_contours(verts), verbose=True)
 
 
-def test_calculate_hillshade():
-    print("Testing hillshade generation")
-    import scipy.stats as st
-    import matplotlib.pyplot as plt
+# def test_calculate_hillshade():
+#     print("Testing hillshade generation")
+#     import scipy.stats as st
+#     import matplotlib.pyplot as plt
 
-    subset = planet.data[planet.data["Cluster"] == 0]
+#     subset = planet.data[planet.data["Cluster"] == 0]
 
-    y = subset["Latitude"].values
-    x = subset["Longitude"].values
+#     y = subset["Latitude"].values
+#     x = subset["Longitude"].values
 
-    # Define the borders
-    deltaX = (max(x) - min(x)) / 3
-    deltaY = (max(y) - min(y)) / 3
-    xmin = max(-180, min(x) - deltaX)
-    xmax = min(180, max(x) + deltaX)
-    ymin = max(-90, min(y) - deltaY)
-    ymax = min(90, max(y) + deltaY)
+#     # Define the borders
+#     deltaX = (max(x) - min(x)) / 3
+#     deltaY = (max(y) - min(y)) / 3
+#     xmin = max(-180, min(x) - deltaX)
+#     xmax = min(180, max(x) + deltaX)
+#     ymin = max(-90, min(y) - deltaY)
+#     ymax = min(90, max(y) + deltaY)
 
-    xx, yy = np.mgrid[xmin : xmax : (30 * 10 + 1j), ymin : ymax : (30 * 10 + 1j)]
+#     xx, yy = np.mgrid[xmin : xmax : (30 * 10 + 1j), ymin : ymax : (30 * 10 + 1j)]
 
-    positions = np.vstack([xx.ravel(), yy.ravel()])
-    values = np.vstack([x, y])
-    kernel = st.gaussian_kde(values)
-    f = np.reshape(kernel(positions).T, xx.shape)
+#     positions = np.vstack([xx.ravel(), yy.ravel()])
+#     values = np.vstack([x, y])
+#     kernel = st.gaussian_kde(values)
+#     f = np.reshape(kernel(positions).T, xx.shape)
 
-    # np.save("test/hillshade.npy", planet._calculate_hillshade(np.rot90(f), 315, 45))
+#     # np.save("test/hillshade.npy", planet._calculate_hillshade(np.rot90(f), 315, 45))
 
-    np.testing.assert_array_equal(
-        planet._calculate_hillshade(np.rot90(f), 315, 45),
-        np.load("test/hillshade.npy"),
-        verbose=True,
-    )
+#     np.testing.assert_array_equal(
+#         planet._calculate_hillshade(np.rot90(f), 315, 45),
+#         np.load("test/hillshade.npy"),
+#         verbose=True,
+#     )
 
-    return xx, yy, xmin, xmax, ymin, ymax
+#     return xx, yy, xmin, xmax, ymin, ymax
 
 
 # def test__generate_hillshade_polygons():
@@ -297,7 +297,7 @@ test__get_all_contours()
 test_get_contours()
 f = test_get_contour_verts()
 test_clean_contours()
-xx, yy, xmin, xmax, ymin, ymax = test_calculate_hillshade()
+#xx, yy, xmin, xmax, ymin, ymax = test_calculate_hillshade()
 #test__generate_hillshade_polygons()
 #test__generate_highlight_polygons()
 test_fit()
