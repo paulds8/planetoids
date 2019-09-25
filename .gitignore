@@ -10,3 +10,7 @@ ENV/
 demo.ipynb
 planetoids/__pycache__/planetoids.cpython-37.pyc
 venv/pyvenv.cfg
+.ipynb_checkpoints/demo-checkpoint.ipynb
+.vscode/settings.json
+demo.ipynb
+planetoids/__pycache__/planetoids.cpython-37.pyc
