@@ -180,40 +180,40 @@ def test_calculate_hillshade():
     return xx, yy, xmin, xmax, ymin, ymax
 
 
-def test__generate_hillshade_polygons():
-    print("Testing shadow polygon generation")
-    planet._generate_hillshade_polygons(
-        np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
-    )
-    hs_poly = planet._shadows
-    # with open("test/hs_poly.pickle", "wb") as handle:
-    #     pickle.dump(hs_poly, handle)
+# def test__generate_hillshade_polygons():
+#     print("Testing shadow polygon generation")
+#     planet._generate_hillshade_polygons(
+#         np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
+#     )
+#     hs_poly = planet._shadows
+#     # with open("test/hs_poly.pickle", "wb") as handle:
+#     #     pickle.dump(hs_poly, handle)
 
-    hs_poly_check = None
-    with open("test/hs_poly.pickle", "rb") as handle:
-        hs_poly_check = pickle.load(handle)
+#     hs_poly_check = None
+#     with open("test/hs_poly.pickle", "rb") as handle:
+#         hs_poly_check = pickle.load(handle)
 
-    for ix, v in enumerate(hs_poly_check[: len(hs_poly)]):
-        for ixx, vv in enumerate(v):
-            np.testing.assert_almost_equal(vv, hs_poly[ix][ixx])
+#     for ix, v in enumerate(hs_poly_check[: len(hs_poly)]):
+#         for ixx, vv in enumerate(v):
+#             np.testing.assert_almost_equal(vv, hs_poly[ix][ixx])
 
 
-def test__generate_highlight_polygons():
-    print("Testing highlight polygon generation")
-    planet._generate_highlight_polygons(
-        np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
-    )
-    highlight_poly = planet._highlight
-    # with open("test/highlight_poly.pickle", "wb") as handle:
-    #     pickle.dump(highlight_poly, handle)
+# def test__generate_highlight_polygons():
+#     print("Testing highlight polygon generation")
+#     planet._generate_highlight_polygons(
+#         np.load("test/hillshade.npy"), xx, yy, xmin, xmax, ymin, ymax, 20
+#     )
+#     highlight_poly = planet._highlight
+#     # with open("test/highlight_poly.pickle", "wb") as handle:
+#     #     pickle.dump(highlight_poly, handle)
 
-    highlight_poly_check = None
-    with open("test/highlight_poly.pickle", "rb") as handle:
-        highlight_poly_check = pickle.load(handle)
+#     highlight_poly_check = None
+#     with open("test/highlight_poly.pickle", "rb") as handle:
+#         highlight_poly_check = pickle.load(handle)
 
-    for ix, v in enumerate(highlight_poly_check[: len(highlight_poly)]):
-        for ixx, vv in enumerate(v):
-            np.testing.assert_almost_equal(vv, highlight_poly[ix][ixx])
+#     for ix, v in enumerate(highlight_poly_check[: len(highlight_poly)]):
+#         for ixx, vv in enumerate(v):
+#             np.testing.assert_almost_equal(vv, highlight_poly[ix][ixx])
 
 
 def test__generate_relief():
