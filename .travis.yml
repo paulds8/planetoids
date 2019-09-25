@@ -5,6 +5,6 @@ cache: pip
 install:
   - pip install -r requirements.txt
 script:
-  - pytest --cov=test/test.py --cov-report term test/
+  - pytest --cov-report term --cov=planetoids test/test.py
 after_success:
   - codecov
