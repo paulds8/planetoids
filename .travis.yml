@@ -5,4 +5,6 @@ cache: pip
 install:
   - pip install -r requirements.txt
 script:
-  - python test/test.py
+  - pytest --cov=test/test.py --cov-report term test/
+after_success:
+  - codecov
