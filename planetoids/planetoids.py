@@ -9,12 +9,10 @@ from plotly.subplots import make_subplots
 from matplotlib import colors
 import scipy.stats as st
 import cv2 as cv
-from functools import reduce
 from PIL import Image
 from plotly import offline
 from plotly.subplots import make_subplots
 from sklearn.preprocessing import MinMaxScaler
-from shapely.geometry import asPoint
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
 from shapely.ops import unary_union
@@ -265,7 +263,7 @@ class Planetoid(object):
 
         return cntrs
 
-    def _get_contour_verts(self, cn):
+    def _get_contour_verts(cn):
         """
         Get the vertices from the mpl plot to generate our own geometries.
         """
@@ -486,7 +484,7 @@ class Planetoid(object):
 
         return stream_container
 
-    def _clean_contours(self, cntrs):
+    def _clean_contours(cntrs):
         """
         Use Shapely to modify the contours to prevent the case where Plotly
         fills the inverted section instead.
@@ -501,7 +499,7 @@ class Planetoid(object):
                 if poly.geom_type == "MultiPolygon":
                     polys = [np.array(p.exterior.coords) for p in list(poly)]
                     coords = []
-                    for co in coords:
+                    for co in polys:
                         if co.shape[0] >= 3:
                             coords.append(co)
                     cleaned.append(coords)
@@ -1125,7 +1123,7 @@ class Planetoid(object):
             auto_open=auto_open,
         )
 
-    def _add_salt_and_pepper(self, gb, prob):
+    def _add_salt_and_pepper(gb, prob):
         """Adds "Salt & Pepper" noise to an image.
         gb: should be one-channel image with pixels in [0, 1] range
         prob: probability (threshold) that controls level of noise
