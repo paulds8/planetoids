@@ -7,6 +7,9 @@
 
 _Procedurally generated worlds._
 
+![Build Status](https://img.shields.io/travis/com/paulds8/planetoids)
+![Coverage Status](https://img.shields.io/codecov/c/github/paulds8/planetoids)
+
 <h2>What is it?</h2>
 Planetoids is a high level Python API for generating interactive, procedurally generated worlds from data in a pandas DataFrame.
 
