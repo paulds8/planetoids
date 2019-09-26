@@ -510,7 +510,7 @@ class Planetoid(object):
                         cleaned.append([coords])
         return cleaned
 
-    def _calculate_hillshade(self, array, azimuth, angle_altitude):
+    def _calculate_hillshade(array, azimuth, angle_altitude):
         """
         Calculate a hillshade over the generated topography.
         """
@@ -982,7 +982,7 @@ class Planetoid(object):
 
             if plot_highlight:
                 self._plot_highlight()
-            if plot_hillshade:    
+            if plot_hillshade:
                 self._plot_shadows()
 
             if plot_points:
@@ -1110,12 +1110,12 @@ class Planetoid(object):
             
         `include_plotlyjs` : `bool` (default=`True`)
             Allows a user to include or exclude the plotly.js library in the export.
-            
+        
         `auto_open` : `bool` (default=`False`)
             If True, the `Planetoid` will open in your web browser after saving.
 
         """
-        offline.plot(       
+        offline.plot(
             self._fig,
             filename=filename,
             output_type=output_type,
