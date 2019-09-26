@@ -261,7 +261,7 @@ class Planetoid(object):
 
         return cntrs
 
-    def _get_contour_verts(cn):
+    def _get_contour_verts(self, cn):
         """
         Get the vertices from the mpl plot to generate our own geometries.
         """
@@ -427,7 +427,7 @@ class Planetoid(object):
             )
 
     def _generate_relief(
-        f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
+        self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
     ):
         """Generate the relief detail for the topography.
         """
@@ -482,7 +482,7 @@ class Planetoid(object):
 
         return stream_container
 
-    def _clean_contours(cntrs):
+    def _clean_contours(self, cntrs):
         """
         Use Shapely to modify the contours to prevent the case where Plotly
         fills the inverted section instead.
@@ -508,7 +508,7 @@ class Planetoid(object):
                         cleaned.append([coords])
         return cleaned
 
-    def _calculate_hillshade(array, azimuth, angle_altitude):
+    def _calculate_hillshade(self, array, azimuth, angle_altitude):
         """
         Calculate a hillshade over the generated topography.
         """
@@ -1118,10 +1118,10 @@ class Planetoid(object):
             filename=filename,
             output_type=output_type,
             include_plotlyjs=include_plotlyjs,
-            auto_open=auto_open,
+            auto_open=auto_open
         )
 
-    def _add_salt_and_pepper(gb, prob):
+    def _add_salt_and_pepper(self, gb, prob):
         """Adds "Salt & Pepper" noise to an image.
         gb: should be one-channel image with pixels in [0, 1] range
         prob: probability (threshold) that controls level of noise
