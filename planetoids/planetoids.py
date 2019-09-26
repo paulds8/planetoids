@@ -1,17 +1,15 @@
 import random
 import numpy as np
 import pandas as pd
+import cv2 as cv
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from functools import reduce
+import scipy.stats as st
 from plotly.subplots import make_subplots
 from matplotlib import colors
-import scipy.stats as st
-import cv2 as cv
 from PIL import Image
 from plotly import offline
-from plotly.subplots import make_subplots
 from sklearn.preprocessing import MinMaxScaler
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
@@ -429,7 +427,7 @@ class Planetoid(object):
             )
 
     def _generate_relief(
-        self, f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
+        f, xx, yy, cntrs, density=3, min_length=0.005, max_length=0.2
     ):
         """Generate the relief detail for the topography.
         """
