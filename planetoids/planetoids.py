@@ -1,17 +1,19 @@
 import random
 import numpy as np
 import pandas as pd
-import cv2 as cv
 import plotly.graph_objects as go
-import scipy.stats as st
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from functools import reduce
 from plotly.subplots import make_subplots
 from matplotlib import colors
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+import scipy.stats as st
+import cv2 as cv
+from functools import reduce
 from PIL import Image
 from plotly import offline
+from plotly.subplots import make_subplots
+from sklearn.preprocessing import MinMaxScaler
 from shapely.geometry import asPoint
 from shapely.geometry import asLineString
 from shapely.geometry import asPolygon
