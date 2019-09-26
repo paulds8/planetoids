@@ -27,3 +27,19 @@ matrix:
         - python3 -m pytest --cov-report term --cov=planetoids test/test.py
       after_success:
         - python3 -m codecov
+    - name: "Python 3.7 on Windows"
+      os: windows
+      language: shell
+      before_install:
+        - choco install python --version 3.7
+        - python --version
+        - python -m pip install --upgrade pip
+        - pip3 install --upgrade pytest
+        - pip3 install codecov
+      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
+      install:
+        - python3 -m pip install -r requirements.txt
+      script:
+        - python3 -m pytest --cov-report term --cov=planetoids test/test.py
+      after_success:
+        - python3 -m codecov
