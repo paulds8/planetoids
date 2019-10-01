@@ -1,10 +1,30 @@
 from distutils.core import setup
+
+long_description = """
+## What is it?
+Planetoids is a high level Python API for generating interactive, procedurally generated worlds from data in a pandas DataFrame.
+
+## What does it do?
+Currently, Planetoids is able to terraform a planet from two-dimensional data that has an optional cluster attribute. It's still very new and will be growing in capabilities, but for now the library can achieve the following when terraforming a new world:
+
++ generates somewhere in _space_ to render your creation
++ generates an ecology based on input data statistics
++ generates land masses
+	+ these land masses have 
+		+ topographic detail (contours) 
+		+ relief detail (gradients)
++ generates lighting effects in the form of a hillshade
+
+For further information please visit the Homepage in the Project links on the left.
+"""
+
 setup(
-  name = 'planetoids',         # How you named your package folder (MyLib)
-  packages = ['planetoids'],   # Chose the same as "name"
-  version = '0.1-alpha',      # Start with a small number and increase it with every change you make
-  license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
+  name = 'planetoids',
+  packages = ['planetoids'],
+  version = '0.1-alpha',
+  license='MIT',
   description = 'Planetoids is a high level Python API for generating interactive, procedurally generated worlds from data in a pandas DataFrame.',   # Give a short description about your library
+  long_description=long_description,
   author = 'Paul dos Santos',
   author_email = 'paulds8@hotmail.com',
   url = 'https://github.com/paulds8/planetoids',
@@ -25,7 +45,7 @@ setup(
   classifiers=[
     'Development Status :: 3 - Alpha',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
     'Intended Audience :: Developers', 
-    'Topic :: Software Development :: Artistic Software :: Scientific/Engineering',
+    'Topic :: Software Development',
     'License :: OSI Approved :: MIT License',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.4',
