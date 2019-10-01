@@ -59,21 +59,22 @@ Conda:
 
 PyPI:
 
-    ```...```
+```pip install planetoids```
 
 Manual:
 
 ```
-    wget https://github.com/paulds8/planetoids/archive/master.zip
-    unzip master.zip
-    rm master.zip
-    cd planetoids
-    pip install -r requirements.txt
+wget https://github.com/paulds8/planetoids/archive/master.zip
+unzip master.zip
+rm master.zip
+cd planetoids
+pip install -r requirements.txt
 ```
 
-If you're on Windows and installing from PyPI or Manually, you will probably need to install the following dependencies: 
+If you're on Windows and installing from PyPI or manually, you may need to install the following packages from the Windows binaries for your Python version here: 
 
-```...```
+* https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely
+* https://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv
 
 <h2>Documentation</h2>
 
