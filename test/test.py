@@ -38,8 +38,8 @@ def test_world_construction_exceptions():
 
 def test_rescale_coordinates():
     print("Testing coord scaling")
-    # np.save('rescaled', planet.data[['Latitude', 'Longitude']])
     planet._rescale_coordinates()
+    # np.save('test/rescaled', planet.data[['Latitude', 'Longitude']])
     np.testing.assert_array_almost_equal(
         planet.data[["Latitude", "Longitude"]].values, np.load("test/rescaled.npy"),
         decimal=4
@@ -52,7 +52,7 @@ def test__get_all_contours():
     planet._get_all_contours(topography_levels=20, lighting_levels=20, relief_density=3)
 
     # with open("test/contours.pickle", "wb") as handle:
-    #     pickle.dump(planet.contours, handle)
+    #     pickle.dump(planet._contours, handle)
 
     contours = None
     with open("test/contours.pickle", "rb") as handle:
@@ -114,13 +114,13 @@ def test_get_contour_verts():
     plt.close(fig)
 
     # with open("test/verts_0.pickle", "wb") as handle:
-    #     pickle.dump(planet._get_contour_verts(cset), handle)
+    #     pickle.dump(planet._get_contour_verts(cset, xmin, xmax, ymin, ymax), handle)
 
     verts = None
     with open("test/verts_0.pickle", "rb") as handle:
         verts = pickle.load(handle)
 
-    verts_calc = planet._get_contour_verts(cset)
+    verts_calc = planet._get_contour_verts(cset, xmin, xmax, ymin, ymax)
     for ix, v in enumerate(verts):
         for ixx, vv in enumerate(v):
             np.testing.assert_almost_equal(vv, verts_calc[ix][ixx], decimal=4, verbose=True)
