@@ -77,6 +77,9 @@ class Planetoid(object):
             raise ValueError("Y field not in provided DataFrame")
         if cluster_field is not None or cluster_field in self._data.columns:
             self._cluster_field = cluster_field
+        elif cluster_field is None:
+            self._data['Cluster'] = ''
+            self._cluster_field = 'Cluster'
         else:
             raise ValueError("Cluster field not in provided DataFrame")
         
@@ -104,7 +107,7 @@ class Planetoid(object):
             self._ecology = colors.ListedColormap(np.random.rand(256,3))
 
         # only keep what we need
-        self._data = self._data[[y, x, cluster_field]].copy()
+        self._data = self._data[[self._y, self._x, self._cluster_field]].copy()
 
         # set the rest
         self._contours = dict()
@@ -183,8 +186,8 @@ class Planetoid(object):
         Rescale provided components as pseudo latitudes and longitudes.
         """
         # trying to prevent issues at the extremes
-        lat_scaler = MinMaxScaler(feature_range=(-80, 80))
-        long_scaler = MinMaxScaler(feature_range=(-170, 170))
+        lat_scaler = MinMaxScaler(feature_range=(-75, 75))
+        long_scaler = MinMaxScaler(feature_range=(-165, 165))
 
         self._data["Latitude"] = lat_scaler.fit_transform(
             self._data[self.y].values.reshape(-1, 1)
@@ -208,7 +211,7 @@ class Planetoid(object):
         """
 
         # this is required since we need to throw some of them away later
-        topography_levels += 5
+        topography_levels += 6
 
         y = subset["Latitude"].values
         x = subset["Longitude"].values
@@ -247,7 +250,7 @@ class Planetoid(object):
         cset = ax.contour(xx, yy, f, colors="k", levels=topography_levels)
         plt.close(fig)
 
-        cntrs = self._clean_contours(self._get_contour_verts(cset))
+        cntrs = self._clean_contours(self._get_contour_verts(cset, xmin, xmax, ymin, ymax))
 
         self._contours[cluster] = cntrs
 
@@ -261,7 +264,7 @@ class Planetoid(object):
 
         return cntrs
 
-    def _get_contour_verts(self, cn):
+    def _get_contour_verts(self, cn, xmin, xmax, ymin, ymax):
         """
         Get the vertices from the mpl plot to generate our own geometries.
         """
@@ -275,8 +278,18 @@ class Planetoid(object):
                 # for each segment of that section
                 for vv in pp.iter_segments():
                     xy.append(vv[0])
-                paths.append(np.vstack(xy))
+                seg = np.vstack(xy)
+                if len(seg) > 0: 
+                    x_loc = seg[:, 0]
+                    y_loc = seg[:, 1]
 
+                    if (
+                        xmin not in x_loc
+                        and xmax not in x_loc
+                        and ymin not in y_loc
+                        and ymax not in y_loc
+                        ):
+                        paths.append(seg)
             cntr.append(paths)
 
         return cntr
@@ -417,10 +430,10 @@ class Planetoid(object):
         Get all of the contours per class.
         """
         for cluster in tqdm(
-            np.unique(self._data["Cluster"].values), desc="Generating data"
+            np.unique(self._data[self._cluster_field].values), desc="Generating data"
         ):
             points_df = self._data.loc[
-                self._data["Cluster"] == cluster, ["Longitude", "Latitude"]
+                self._data[self._cluster_field] == cluster, ["Longitude", "Latitude"]
             ]
             self._get_contours(
                 cluster, points_df, topography_levels, lighting_levels, relief_density
@@ -555,7 +568,7 @@ class Planetoid(object):
         Plot the hillshade-derived shadows.
         """
         # globe
-        for cluster in tqdm(self._shadows, desc="Plotting Shadows"):
+        for cluster in tqdm(self._shadows, desc="Plotting shadows"):
             for ix, shadow in enumerate(cluster):
                 if ix % 2 == 0:
                     shadow_array = np.array(shadow)
@@ -723,14 +736,16 @@ class Planetoid(object):
         Plot the provided point data.
         """
 
+        b, target_colors = np.unique(self._data[self._cluster_field], return_inverse=True)
+
         # globe
         self._fig.add_trace(
             go.Scattergeo(
                 lon=self._data["Longitude"],
                 lat=self._data["Latitude"],
-                marker_color=self._data["Cluster"],
+                marker_color=target_colors,
                 hoverinfo="text",
-                hovertext=self._data["Cluster"],
+                hovertext=self._data[self._cluster_field],
                 marker_size=2,
                 showlegend=False
                 #     marker = dict(
@@ -808,7 +823,8 @@ class Planetoid(object):
             autosize=True,
             width=None,
             height=None,
-            title_text=planet_name,
+            title_text=None,
+            font=dict(size=18, color='#dedede'),
             showlegend=False,
             dragmode="pan",
             plot_bgcolor="rgba(0,0,0,0)",
