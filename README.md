@@ -39,7 +39,7 @@ import planetoids as pt
 planet = pt.Planetoid(df, x="x_column", y="y_column", cluster_field="cluster_column").fit_terraform()
 ```
 
-For full working examples, check out the demo notebooks.
+For full working examples, check out the interactive online [demo notebooks](https://nbviewer.jupyter.org/github/paulds8/planetoids/blob/master/examples).
 
 <h2>Installing</h2>
 Planetoids depends on:
@@ -49,7 +49,7 @@ Planetoids depends on:
  - shapely
  - pyproj
  - plotly
- - OpenCV
+ - opencv
  - and their related dependencies like numpy and scipy
  
 <h3>Install Options</h3>
@@ -77,7 +77,4 @@ If you're on Windows and installing from PyPI or Manually, you will probably nee
 
 <h2>Documentation</h2>
 
-This library is super new, so there's not a ton of documentation to come by _just yet_, but the public-facing API is fully documented [here](https://paulds8.github.io/planetoids/planetoids.m/).
-
-<h2>Help & Support</h2>
-Put the TODOs somewhere here as well
+This library is super new, so there's not a ton of documentation to come by _just yet_, but the public-facing API is fully documented [here](https://paulds8.github.io/planetoids/planetoids.m).
