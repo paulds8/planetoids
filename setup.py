@@ -2,13 +2,13 @@ from distutils.core import setup
 setup(
   name = 'planetoids',         # How you named your package folder (MyLib)
   packages = ['planetoids'],   # Chose the same as "name"
-  version = '0.1',      # Start with a small number and increase it with every change you make
+  version = '0.1-alpha',      # Start with a small number and increase it with every change you make
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description = 'Planetoids is a high level Python API for generating interactive, procedurally generated worlds from data in a pandas DataFrame.',   # Give a short description about your library
   author = 'Paul dos Santos',
   author_email = 'paulds8@hotmail.com',
   url = 'https://github.com/paulds8/planetoids',
-  download_url = 'https://github.com/paulds8/planetoids/archive/v_01.tar.gz',
+  download_url = 'https://github.com/paulds8/planetoids/archive/0.1-alpha.tar.gz',
   keywords = ['interactive', '3D', 'plotting', 'world-building', 'data science', 'GIS'],
   install_requires=[ 
             'matplotlib',
