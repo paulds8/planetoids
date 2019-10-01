@@ -48,7 +48,7 @@ class Planetoid(object):
 
     # **Examples**
     ----------
-    See [**examples**]()
+    See [**examples**](https://nbviewer.jupyter.org/github/paulds8/planetoids/blob/master/examples)
     """
 
     def __init__(
@@ -227,8 +227,8 @@ class Planetoid(object):
         # Create meshgrid
         # todo: let a user specify the grid density
         xx, yy = np.mgrid[
-            xmin : xmax : (30 * 10 + 1j),  # (30 * topography_levels + 1j),
-            ymin : ymax : (30 * 10 + 1j),  # (30 * topography_levels + 1j),
+            xmin : xmax : (30 * 20 + 1j),  # (30 * topography_levels + 1j),
+            ymin : ymax : (30 * 20 + 1j),  # (30 * topography_levels + 1j),
         ]
 
         positions = np.vstack([xx.ravel(), yy.ravel()])

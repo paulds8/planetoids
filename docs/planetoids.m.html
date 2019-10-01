@@ -1050,6 +1050,7 @@ table {
           
   <ul>
     <li class="mono"><a href="#planetoids.Planetoid.__init__">__init__</a></li>
+    <li class="mono"><a href="#planetoids.Planetoid.change_ecology">change_ecology</a></li>
     <li class="mono"><a href="#planetoids.Planetoid.fit">fit</a></li>
     <li class="mono"><a href="#planetoids.Planetoid.fit_terraform">fit_terraform</a></li>
     <li class="mono"><a href="#planetoids.Planetoid.save">save</a></li>
@@ -1076,30 +1077,23 @@ table {
   
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-planetoids', this);">Show source &equiv;</a></p>
   <div id="source-planetoids" class="source">
-    <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+    <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">umap</span>
-<span class="kn">import</span> <span class="nn">pyproj</span>  <span class="c1"># pip install pyproj==2.2.1 --no-cache-dir</span>
+<span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">cv</span>
 <span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="kn">as</span> <span class="nn">go</span>
-<span class="kn">from</span> <span class="nn">plotly</span> <span class="kn">import</span> <span class="n">offline</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="kn">as</span> <span class="nn">cm</span>
 <span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="kn">as</span> <span class="nn">st</span>
-<span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">cv</span>
-<span class="kn">from</span> <span class="nn">tqdm.autonotebook</span> <span class="kn">import</span> <span class="n">tqdm</span>
-<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">MinMaxScaler</span><span class="p">,</span> <span class="n">StandardScaler</span>
+<span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">colors</span>
 <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
-<span class="kn">from</span> <span class="nn">shapely.geometry</span> <span class="kn">import</span> <span class="n">asPoint</span>
+<span class="kn">from</span> <span class="nn">plotly</span> <span class="kn">import</span> <span class="n">offline</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">MinMaxScaler</span>
 <span class="kn">from</span> <span class="nn">shapely.geometry</span> <span class="kn">import</span> <span class="n">asLineString</span>
 <span class="kn">from</span> <span class="nn">shapely.geometry</span> <span class="kn">import</span> <span class="n">asPolygon</span>
 <span class="kn">from</span> <span class="nn">shapely.ops</span> <span class="kn">import</span> <span class="n">unary_union</span>
-<span class="kn">import</span> <span class="nn">random</span>
-
-<span class="c1"># from shapely.geometry import MultiPoint</span>
-<span class="c1"># from shapely.ops import transform</span>
-<span class="c1"># from functools import partial</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="nb">reduce</span>
-<span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
+<span class="kn">from</span> <span class="nn">tqdm.autonotebook</span> <span class="kn">import</span> <span class="n">tqdm</span>
 
 
 <span class="k">class</span> <span class="nc">Planetoid</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -1128,15 +1122,16 @@ table {
 <span class="sd">        Any one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)</span>
 
 <span class="sd">    `random_state` : `int`, optional (default=`None`)  </span>
-<span class="sd">        Optional `integer` to seed the random number generators for reproducibility if required</span>
+<span class="sd">        Optional `integer` to seed the random number generators.</span>
+<span class="sd">        By default, a random seed is calculated based on the provided seed data on your behalf so reproducibility is guaranteed.</span>
 
 <span class="sd">    # **Examples**</span>
 <span class="sd">    ----------</span>
-<span class="sd">    See [**examples**]()</span>
+<span class="sd">    See [**examples**](https://nbviewer.jupyter.org/github/paulds8/planetoids/blob/master/examples)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ecology</span><span class="o">=</span><span class="s2">&quot;gist_earth&quot;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">None</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ecology</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">None</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_y</span> <span class="o">=</span> <span class="bp">None</span>
@@ -1146,7 +1141,7 @@ table {
         <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_data_generated</span> <span class="o">=</span> <span class="bp">False</span>
-
+        
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1161,25 +1156,37 @@ table {
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Y field not in provided DataFrame&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cluster_field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">cluster_field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span> <span class="o">=</span> <span class="n">cluster_field</span>
+        <span class="k">elif</span> <span class="n">cluster_field</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s1">&#39;Cluster&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span> <span class="o">=</span> <span class="s1">&#39;Cluster&#39;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cluster field not in provided DataFrame&quot;</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="n">random_state</span>
             <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
             <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
             <span class="n">cv</span><span class="o">.</span><span class="n">setRNGSeed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">random_state</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">pass</span>
+            <span class="n">random_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">var</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+            <span class="n">cv</span><span class="o">.</span><span class="n">setRNGSeed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Please provide an integer value for your random seed&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">ecology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">ListedColormap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
 
         <span class="c1"># only keep what we need</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[[</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[[</span><span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="c1"># set the rest</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_contours</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
@@ -1227,12 +1234,22 @@ table {
 <span class="sd">        Any one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span>
+    
+    <span class="k">def</span> <span class="nf">change_ecology</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ecology</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change the `Planetoid` ecology to one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">random_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Optional `integer` to seed the random number generators for</span>
-<span class="sd">        reproducibility if required.</span>
+<span class="sd">        Optional `integer` to seed the random number generators.</span>
+<span class="sd">        By default, a random seed is calculated based on the provided seed data on your behalf so reproducibility is guaranteed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span>
     
@@ -1248,8 +1265,8 @@ table {
 <span class="sd">        Rescale provided components as pseudo latitudes and longitudes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># trying to prevent issues at the extremes</span>
-        <span class="n">lat_scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">80</span><span class="p">,</span> <span class="mi">80</span><span class="p">))</span>
-        <span class="n">long_scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">170</span><span class="p">,</span> <span class="mi">170</span><span class="p">))</span>
+        <span class="n">lat_scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">75</span><span class="p">,</span> <span class="mi">75</span><span class="p">))</span>
+        <span class="n">long_scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">165</span><span class="p">,</span> <span class="mi">165</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lat_scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -1273,7 +1290,7 @@ table {
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># this is required since we need to throw some of them away later</span>
-        <span class="n">topography_levels</span> <span class="o">+=</span> <span class="mi">5</span>
+        <span class="n">topography_levels</span> <span class="o">+=</span> <span class="mi">6</span>
 
         <span class="n">y</span> <span class="o">=</span> <span class="n">subset</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">subset</span><span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
@@ -1312,7 +1329,7 @@ table {
         <span class="n">cset</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">topography_levels</span><span class="p">)</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
 
-        <span class="n">cntrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_contours</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_contour_verts</span><span class="p">(</span><span class="n">cset</span><span class="p">))</span>
+        <span class="n">cntrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_contours</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_contour_verts</span><span class="p">(</span><span class="n">cset</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_contours</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="o">=</span> <span class="n">cntrs</span>
 
@@ -1326,7 +1343,7 @@ table {
 
         <span class="k">return</span> <span class="n">cntrs</span>
 
-    <span class="k">def</span> <span class="nf">_get_contour_verts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cn</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_get_contour_verts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cn</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the vertices from the mpl plot to generate our own geometries.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1340,8 +1357,18 @@ table {
                 <span class="c1"># for each segment of that section</span>
                 <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">pp</span><span class="o">.</span><span class="n">iter_segments</span><span class="p">():</span>
                     <span class="n">xy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">xy</span><span class="p">))</span>
+                <span class="n">seg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">xy</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> 
+                    <span class="n">x_loc</span> <span class="o">=</span> <span class="n">seg</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+                    <span class="n">y_loc</span> <span class="o">=</span> <span class="n">seg</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
 
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">xmin</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x_loc</span>
+                        <span class="ow">and</span> <span class="n">xmax</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x_loc</span>
+                        <span class="ow">and</span> <span class="n">ymin</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">y_loc</span>
+                        <span class="ow">and</span> <span class="n">ymax</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">y_loc</span>
+                        <span class="p">):</span>
+                        <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
             <span class="n">cntr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">cntr</span>
@@ -1482,10 +1509,10 @@ table {
 <span class="sd">        Get all of the contours per class.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Cluster&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Generating data&quot;</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Generating data&quot;</span>
         <span class="p">):</span>
             <span class="n">points_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Cluster&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cluster</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;Latitude&quot;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">]</span> <span class="o">==</span> <span class="n">cluster</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;Latitude&quot;</span><span class="p">]</span>
             <span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_get_contours</span><span class="p">(</span>
                 <span class="n">cluster</span><span class="p">,</span> <span class="n">points_df</span><span class="p">,</span> <span class="n">topography_levels</span><span class="p">,</span> <span class="n">lighting_levels</span><span class="p">,</span> <span class="n">relief_density</span>
@@ -1562,7 +1589,7 @@ table {
                 <span class="k">if</span> <span class="n">poly</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;MultiPolygon&quot;</span><span class="p">:</span>
                     <span class="n">polys</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">poly</span><span class="p">)]</span>
                     <span class="n">coords</span> <span class="o">=</span> <span class="p">[]</span>
-                    <span class="k">for</span> <span class="n">co</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">co</span> <span class="ow">in</span> <span class="n">polys</span><span class="p">:</span>
                         <span class="k">if</span> <span class="n">co</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
                             <span class="n">coords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">co</span><span class="p">)</span>
                     <span class="n">cleaned</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
@@ -1620,7 +1647,7 @@ table {
 <span class="sd">        Plot the hillshade-derived shadows.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># globe</span>
-        <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shadows</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Plotting Shadows&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shadows</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Plotting shadows&quot;</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">shadow</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cluster</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">ix</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">shadow_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shadow</span><span class="p">)</span>
@@ -1633,7 +1660,7 @@ table {
                             <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">),</span>
                             <span class="n">fill</span><span class="o">=</span><span class="s2">&quot;toself&quot;</span><span class="p">,</span>
                             <span class="n">fillcolor</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
-                            <span class="n">opacity</span><span class="o">=</span><span class="mf">0.05</span> <span class="o">+</span> <span class="p">(</span><span class="n">ix</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">),</span>
+                            <span class="n">opacity</span><span class="o">=</span><span class="mf">0.05</span> <span class="o">+</span> <span class="p">(</span><span class="n">ix</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span><span class="p">),</span>
                             <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
@@ -1658,7 +1685,7 @@ table {
                             <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">),</span>
                             <span class="n">fill</span><span class="o">=</span><span class="s2">&quot;toself&quot;</span><span class="p">,</span>
                             <span class="n">fillcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
-                            <span class="n">opacity</span><span class="o">=</span><span class="mf">0.01</span> <span class="o">+</span> <span class="p">(</span><span class="n">ix</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">),</span>
+                            <span class="n">opacity</span><span class="o">=</span><span class="mf">0.01</span> <span class="o">+</span> <span class="p">(</span><span class="n">ix</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span><span class="p">),</span>
                             <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
@@ -1788,14 +1815,16 @@ table {
 <span class="sd">        Plot the provided point data.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
+        <span class="n">b</span><span class="p">,</span> <span class="n">target_colors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">],</span> <span class="n">return_inverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
         <span class="c1"># globe</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
             <span class="n">go</span><span class="o">.</span><span class="n">Scattergeo</span><span class="p">(</span>
                 <span class="n">lon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">],</span>
                 <span class="n">lat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">],</span>
-                <span class="n">marker_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Cluster&quot;</span><span class="p">],</span>
+                <span class="n">marker_color</span><span class="o">=</span><span class="n">target_colors</span><span class="p">,</span>
                 <span class="n">hoverinfo</span><span class="o">=</span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
-                <span class="n">hovertext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Cluster&quot;</span><span class="p">],</span>
+                <span class="n">hovertext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">],</span>
                 <span class="n">marker_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                 <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span>
                 <span class="c1">#     marker = dict(</span>
@@ -1834,8 +1863,8 @@ table {
 <span class="sd">        This trace is added to help the autoresize logic work.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1920</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1280</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mi">1920</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="mi">1280</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
             <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
                 <span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">],</span>
@@ -1862,8 +1891,8 @@ table {
 <span class="sd">        Update layout config.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1920</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1280</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mi">1920</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="mi">1280</span>
 
         <span class="n">image_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
         <span class="n">image_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_salt_and_pepper</span><span class="p">(</span><span class="n">image_array</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;uint8&quot;</span><span class="p">)</span>
@@ -1871,9 +1900,10 @@ table {
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span>
             <span class="n">autosize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
-            <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
-            <span class="n">title_text</span><span class="o">=</span><span class="n">planet_name</span><span class="p">,</span>
+            <span class="n">width</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">title_text</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">font</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#dedede&#39;</span><span class="p">),</span>
             <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
             <span class="n">dragmode</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span>
             <span class="n">plot_bgcolor</span><span class="o">=</span><span class="s2">&quot;rgba(0,0,0,0)&quot;</span><span class="p">,</span>
@@ -1900,7 +1930,7 @@ table {
         <span class="n">topography_levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
         <span class="n">lighting_levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
         <span class="n">relief_density</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-        <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Use the seed data to generate data required to terraform the</span>
 <span class="sd">        `Planetoid`.</span>
@@ -1921,6 +1951,18 @@ table {
 <span class="sd">        `rescale_coordinates` : `bool` (default=`True`)  </span>
 <span class="sd">            Used to specify whether or not input seed `x` and `y` data should be rescaled to global geographic coordinates.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">topography_levels</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">topography_levels</span><span class="o">&gt;=</span><span class="mi">5</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 5+ for topography_levels&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lighting_levels</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">lighting_levels</span><span class="o">&gt;=</span><span class="mi">5</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 5+ for lighting_levels&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">relief_density</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">relief_density</span><span class="o">&gt;=</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 1+ for relief_density&#39;</span><span class="p">)</span>
         <span class="c1"># transform 2d components into pseudo lat/longs</span>
         <span class="k">if</span> <span class="n">rescale_coordinates</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_rescale_coordinates</span><span class="p">()</span>
@@ -1932,7 +1974,8 @@ table {
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">plot_topography</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">plot_points</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="n">plot_lighting</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">plot_highlight</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">plot_hillshade</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;orthographic&quot;</span><span class="p">,</span>
         <span class="n">planet_name</span><span class="o">=</span><span class="s2">&quot;Planetoids&quot;</span><span class="p">,</span>
         <span class="n">render</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
@@ -1951,8 +1994,11 @@ table {
 <span class="sd">        `plot_points` : `bool` (default=`True`)  </span>
 <span class="sd">            Used to control whether or not the seed points should be rendered.</span>
 
-<span class="sd">        `plot_lighting` : `bool` (default=`True`)  </span>
-<span class="sd">            Used to control whether or not the lighting effects should be rendered.</span>
+<span class="sd">        `plot_highlight` : `bool` (default=`True`)  </span>
+<span class="sd">            Used to control whether or not the highlight effect should be rendered.</span>
+<span class="sd">            </span>
+<span class="sd">        `plot_hillshade` : `bool` (default=`True`)  </span>
+<span class="sd">            Used to control whether or not the hillshade effect should be rendered.</span>
 
 <span class="sd">        `projection` : `string` (default=`&quot;orthographic&quot;`)  </span>
 <span class="sd">            Used to control the map projection of the output world.  </span>
@@ -2027,8 +2073,9 @@ table {
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_plot_relief</span><span class="p">()</span>
 
-            <span class="k">if</span> <span class="n">plot_lighting</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">plot_highlight</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_plot_highlight</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">plot_hillshade</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_plot_shadows</span><span class="p">()</span>
 
             <span class="k">if</span> <span class="n">plot_points</span><span class="p">:</span>
@@ -2049,7 +2096,8 @@ table {
         <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">plot_topography</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">plot_points</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="n">plot_lighting</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">plot_highlight</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">plot_hillshade</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;orthographic&quot;</span><span class="p">,</span>
         <span class="n">planet_name</span><span class="o">=</span><span class="s2">&quot;Planetoids&quot;</span><span class="p">,</span>
         <span class="n">render</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
@@ -2082,8 +2130,11 @@ table {
 <span class="sd">        `plot_points` : `bool` (default=`True`)  </span>
 <span class="sd">            Used to control whether or not the seed points should be rendered.</span>
 
-<span class="sd">        `plot_lighting` : `bool` (default=`True`)  </span>
-<span class="sd">            Used to control whether or not the lighting effects should be rendered.</span>
+<span class="sd">        `plot_highlight` : `bool` (default=`True`)  </span>
+<span class="sd">            Used to control whether or not the highlight effect should be rendered.</span>
+<span class="sd">            </span>
+<span class="sd">        `plot_hillshade` : `bool` (default=`True`)  </span>
+<span class="sd">            Used to control whether or not the hillshade effect should be rendered.</span>
 
 <span class="sd">        `projection` : `string` (default=`&quot;orthographic&quot;`)  </span>
 <span class="sd">            Used to control the map projection of the output world.  </span>
@@ -2126,7 +2177,7 @@ table {
             <span class="n">rescale_coordinates</span><span class="o">=</span><span class="n">rescale_coordinates</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">terraform</span><span class="p">(</span>
-            <span class="n">plot_topography</span><span class="p">,</span> <span class="n">plot_points</span><span class="p">,</span> <span class="n">plot_lighting</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">planet_name</span><span class="p">,</span> <span class="n">render</span>
+            <span class="n">plot_topography</span><span class="p">,</span> <span class="n">plot_points</span><span class="p">,</span> <span class="n">plot_highlight</span><span class="p">,</span> <span class="n">plot_hillshade</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">planet_name</span><span class="p">,</span> <span class="n">render</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">save</span><span class="p">(</span>
@@ -2152,17 +2203,17 @@ table {
 <span class="sd">            </span>
 <span class="sd">        `include_plotlyjs` : `bool` (default=`True`)</span>
 <span class="sd">            Allows a user to include or exclude the plotly.js library in the export.</span>
-<span class="sd">            </span>
+<span class="sd">        </span>
 <span class="sd">        `auto_open` : `bool` (default=`False`)</span>
 <span class="sd">            If True, the `Planetoid` will open in your web browser after saving.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>       
+        <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">,</span>
             <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
             <span class="n">output_type</span><span class="o">=</span><span class="n">output_type</span><span class="p">,</span>
             <span class="n">include_plotlyjs</span><span class="o">=</span><span class="n">include_plotlyjs</span><span class="p">,</span>
-            <span class="n">auto_open</span><span class="o">=</span><span class="n">auto_open</span><span class="p">,</span>
+            <span class="n">auto_open</span><span class="o">=</span><span class="n">auto_open</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_add_salt_and_pepper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gb</span><span class="p">,</span> <span class="n">prob</span><span class="p">):</span>
@@ -2208,10 +2259,11 @@ optionally clustered.</p>
 <p><code>ecology</code> : <code>string</code> (default <code>gist_earth</code>)<br />
     Any one of the named <code>colormap</code> references from <a href="https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html"><strong>matplotlib</strong></a></p>
 <p><code>random_state</code> : <code>int</code>, optional (default=<code>None</code>)<br />
-    Optional <code>integer</code> to seed the random number generators for reproducibility if required</p>
+    Optional <code>integer</code> to seed the random number generators.
+    By default, a random seed is calculated based on the provided seed data on your behalf so reproducibility is guaranteed.</p>
 <h1><strong>Examples</strong></h1>
 <hr />
-<p>See <a href=""><strong>examples</strong></a></p></div>
+<p>See <a href="https://nbviewer.jupyter.org/github/paulds8/planetoids/blob/master/examples"><strong>examples</strong></a></p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-planetoids.Planetoid', this);">Show source &equiv;</a></p>
   <div id="source-planetoids.Planetoid" class="source">
@@ -2241,15 +2293,16 @@ optionally clustered.</p>
 <span class="sd">        Any one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)</span>
 
 <span class="sd">    `random_state` : `int`, optional (default=`None`)  </span>
-<span class="sd">        Optional `integer` to seed the random number generators for reproducibility if required</span>
+<span class="sd">        Optional `integer` to seed the random number generators.</span>
+<span class="sd">        By default, a random seed is calculated based on the provided seed data on your behalf so reproducibility is guaranteed.</span>
 
 <span class="sd">    # **Examples**</span>
 <span class="sd">    ----------</span>
-<span class="sd">    See [**examples**]()</span>
+<span class="sd">    See [**examples**](https://nbviewer.jupyter.org/github/paulds8/planetoids/blob/master/examples)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ecology</span><span class="o">=</span><span class="s2">&quot;gist_earth&quot;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">None</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ecology</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">None</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_y</span> <span class="o">=</span> <span class="bp">None</span>
@@ -2259,7 +2312,7 @@ optionally clustered.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_data_generated</span> <span class="o">=</span> <span class="bp">False</span>
-
+        
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2274,25 +2327,37 @@ optionally clustered.</p>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Y field not in provided DataFrame&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cluster_field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">cluster_field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span> <span class="o">=</span> <span class="n">cluster_field</span>
+        <span class="k">elif</span> <span class="n">cluster_field</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s1">&#39;Cluster&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span> <span class="o">=</span> <span class="s1">&#39;Cluster&#39;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cluster field not in provided DataFrame&quot;</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="n">random_state</span>
             <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
             <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
             <span class="n">cv</span><span class="o">.</span><span class="n">setRNGSeed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">random_state</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">pass</span>
+            <span class="n">random_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">var</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+            <span class="n">cv</span><span class="o">.</span><span class="n">setRNGSeed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Please provide an integer value for your random seed&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">ecology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">ListedColormap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
 
         <span class="c1"># only keep what we need</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[[</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[[</span><span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="c1"># set the rest</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_contours</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
@@ -2340,12 +2405,22 @@ optionally clustered.</p>
 <span class="sd">        Any one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span>
+    
+    <span class="k">def</span> <span class="nf">change_ecology</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ecology</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change the `Planetoid` ecology to one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">random_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Optional `integer` to seed the random number generators for</span>
-<span class="sd">        reproducibility if required.</span>
+<span class="sd">        Optional `integer` to seed the random number generators.</span>
+<span class="sd">        By default, a random seed is calculated based on the provided seed data on your behalf so reproducibility is guaranteed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span>
     
@@ -2361,8 +2436,8 @@ optionally clustered.</p>
 <span class="sd">        Rescale provided components as pseudo latitudes and longitudes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># trying to prevent issues at the extremes</span>
-        <span class="n">lat_scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">80</span><span class="p">,</span> <span class="mi">80</span><span class="p">))</span>
-        <span class="n">long_scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">170</span><span class="p">,</span> <span class="mi">170</span><span class="p">))</span>
+        <span class="n">lat_scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">75</span><span class="p">,</span> <span class="mi">75</span><span class="p">))</span>
+        <span class="n">long_scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">165</span><span class="p">,</span> <span class="mi">165</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lat_scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -2386,7 +2461,7 @@ optionally clustered.</p>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># this is required since we need to throw some of them away later</span>
-        <span class="n">topography_levels</span> <span class="o">+=</span> <span class="mi">5</span>
+        <span class="n">topography_levels</span> <span class="o">+=</span> <span class="mi">6</span>
 
         <span class="n">y</span> <span class="o">=</span> <span class="n">subset</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">subset</span><span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
@@ -2425,7 +2500,7 @@ optionally clustered.</p>
         <span class="n">cset</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">topography_levels</span><span class="p">)</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
 
-        <span class="n">cntrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_contours</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_contour_verts</span><span class="p">(</span><span class="n">cset</span><span class="p">))</span>
+        <span class="n">cntrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_contours</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_contour_verts</span><span class="p">(</span><span class="n">cset</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_contours</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="o">=</span> <span class="n">cntrs</span>
 
@@ -2439,7 +2514,7 @@ optionally clustered.</p>
 
         <span class="k">return</span> <span class="n">cntrs</span>
 
-    <span class="k">def</span> <span class="nf">_get_contour_verts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cn</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_get_contour_verts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cn</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the vertices from the mpl plot to generate our own geometries.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -2453,8 +2528,18 @@ optionally clustered.</p>
                 <span class="c1"># for each segment of that section</span>
                 <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">pp</span><span class="o">.</span><span class="n">iter_segments</span><span class="p">():</span>
                     <span class="n">xy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">xy</span><span class="p">))</span>
+                <span class="n">seg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">xy</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> 
+                    <span class="n">x_loc</span> <span class="o">=</span> <span class="n">seg</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+                    <span class="n">y_loc</span> <span class="o">=</span> <span class="n">seg</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
 
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">xmin</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x_loc</span>
+                        <span class="ow">and</span> <span class="n">xmax</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x_loc</span>
+                        <span class="ow">and</span> <span class="n">ymin</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">y_loc</span>
+                        <span class="ow">and</span> <span class="n">ymax</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">y_loc</span>
+                        <span class="p">):</span>
+                        <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">)</span>
             <span class="n">cntr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">cntr</span>
@@ -2595,10 +2680,10 @@ optionally clustered.</p>
 <span class="sd">        Get all of the contours per class.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Cluster&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Generating data&quot;</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Generating data&quot;</span>
         <span class="p">):</span>
             <span class="n">points_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Cluster&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cluster</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;Latitude&quot;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">]</span> <span class="o">==</span> <span class="n">cluster</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;Latitude&quot;</span><span class="p">]</span>
             <span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_get_contours</span><span class="p">(</span>
                 <span class="n">cluster</span><span class="p">,</span> <span class="n">points_df</span><span class="p">,</span> <span class="n">topography_levels</span><span class="p">,</span> <span class="n">lighting_levels</span><span class="p">,</span> <span class="n">relief_density</span>
@@ -2675,7 +2760,7 @@ optionally clustered.</p>
                 <span class="k">if</span> <span class="n">poly</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;MultiPolygon&quot;</span><span class="p">:</span>
                     <span class="n">polys</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">poly</span><span class="p">)]</span>
                     <span class="n">coords</span> <span class="o">=</span> <span class="p">[]</span>
-                    <span class="k">for</span> <span class="n">co</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">co</span> <span class="ow">in</span> <span class="n">polys</span><span class="p">:</span>
                         <span class="k">if</span> <span class="n">co</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
                             <span class="n">coords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">co</span><span class="p">)</span>
                     <span class="n">cleaned</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
@@ -2733,7 +2818,7 @@ optionally clustered.</p>
 <span class="sd">        Plot the hillshade-derived shadows.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># globe</span>
-        <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shadows</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Plotting Shadows&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shadows</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Plotting shadows&quot;</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">shadow</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cluster</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">ix</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">shadow_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shadow</span><span class="p">)</span>
@@ -2746,7 +2831,7 @@ optionally clustered.</p>
                             <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">),</span>
                             <span class="n">fill</span><span class="o">=</span><span class="s2">&quot;toself&quot;</span><span class="p">,</span>
                             <span class="n">fillcolor</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
-                            <span class="n">opacity</span><span class="o">=</span><span class="mf">0.05</span> <span class="o">+</span> <span class="p">(</span><span class="n">ix</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">),</span>
+                            <span class="n">opacity</span><span class="o">=</span><span class="mf">0.05</span> <span class="o">+</span> <span class="p">(</span><span class="n">ix</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span><span class="p">),</span>
                             <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
@@ -2771,7 +2856,7 @@ optionally clustered.</p>
                             <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">),</span>
                             <span class="n">fill</span><span class="o">=</span><span class="s2">&quot;toself&quot;</span><span class="p">,</span>
                             <span class="n">fillcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
-                            <span class="n">opacity</span><span class="o">=</span><span class="mf">0.01</span> <span class="o">+</span> <span class="p">(</span><span class="n">ix</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">),</span>
+                            <span class="n">opacity</span><span class="o">=</span><span class="mf">0.01</span> <span class="o">+</span> <span class="p">(</span><span class="n">ix</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span><span class="p">),</span>
                             <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
@@ -2901,14 +2986,16 @@ optionally clustered.</p>
 <span class="sd">        Plot the provided point data.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
+        <span class="n">b</span><span class="p">,</span> <span class="n">target_colors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">],</span> <span class="n">return_inverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
         <span class="c1"># globe</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
             <span class="n">go</span><span class="o">.</span><span class="n">Scattergeo</span><span class="p">(</span>
                 <span class="n">lon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">],</span>
                 <span class="n">lat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">],</span>
-                <span class="n">marker_color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Cluster&quot;</span><span class="p">],</span>
+                <span class="n">marker_color</span><span class="o">=</span><span class="n">target_colors</span><span class="p">,</span>
                 <span class="n">hoverinfo</span><span class="o">=</span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
-                <span class="n">hovertext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s2">&quot;Cluster&quot;</span><span class="p">],</span>
+                <span class="n">hovertext</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">],</span>
                 <span class="n">marker_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                 <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span>
                 <span class="c1">#     marker = dict(</span>
@@ -2947,8 +3034,8 @@ optionally clustered.</p>
 <span class="sd">        This trace is added to help the autoresize logic work.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1920</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1280</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mi">1920</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="mi">1280</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
             <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
                 <span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">],</span>
@@ -2975,8 +3062,8 @@ optionally clustered.</p>
 <span class="sd">        Update layout config.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1920</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1280</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mi">1920</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="mi">1280</span>
 
         <span class="n">image_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
         <span class="n">image_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_salt_and_pepper</span><span class="p">(</span><span class="n">image_array</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;uint8&quot;</span><span class="p">)</span>
@@ -2984,9 +3071,10 @@ optionally clustered.</p>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span>
             <span class="n">autosize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
-            <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
-            <span class="n">title_text</span><span class="o">=</span><span class="n">planet_name</span><span class="p">,</span>
+            <span class="n">width</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">title_text</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">font</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#dedede&#39;</span><span class="p">),</span>
             <span class="n">showlegend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
             <span class="n">dragmode</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span>
             <span class="n">plot_bgcolor</span><span class="o">=</span><span class="s2">&quot;rgba(0,0,0,0)&quot;</span><span class="p">,</span>
@@ -3013,7 +3101,7 @@ optionally clustered.</p>
         <span class="n">topography_levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
         <span class="n">lighting_levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
         <span class="n">relief_density</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-        <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Use the seed data to generate data required to terraform the</span>
 <span class="sd">        `Planetoid`.</span>
@@ -3034,6 +3122,18 @@ optionally clustered.</p>
 <span class="sd">        `rescale_coordinates` : `bool` (default=`True`)  </span>
 <span class="sd">            Used to specify whether or not input seed `x` and `y` data should be rescaled to global geographic coordinates.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">topography_levels</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">topography_levels</span><span class="o">&gt;=</span><span class="mi">5</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 5+ for topography_levels&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lighting_levels</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">lighting_levels</span><span class="o">&gt;=</span><span class="mi">5</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 5+ for lighting_levels&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">relief_density</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">relief_density</span><span class="o">&gt;=</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 1+ for relief_density&#39;</span><span class="p">)</span>
         <span class="c1"># transform 2d components into pseudo lat/longs</span>
         <span class="k">if</span> <span class="n">rescale_coordinates</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_rescale_coordinates</span><span class="p">()</span>
@@ -3045,7 +3145,8 @@ optionally clustered.</p>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">plot_topography</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">plot_points</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="n">plot_lighting</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">plot_highlight</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">plot_hillshade</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;orthographic&quot;</span><span class="p">,</span>
         <span class="n">planet_name</span><span class="o">=</span><span class="s2">&quot;Planetoids&quot;</span><span class="p">,</span>
         <span class="n">render</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
@@ -3064,8 +3165,11 @@ optionally clustered.</p>
 <span class="sd">        `plot_points` : `bool` (default=`True`)  </span>
 <span class="sd">            Used to control whether or not the seed points should be rendered.</span>
 
-<span class="sd">        `plot_lighting` : `bool` (default=`True`)  </span>
-<span class="sd">            Used to control whether or not the lighting effects should be rendered.</span>
+<span class="sd">        `plot_highlight` : `bool` (default=`True`)  </span>
+<span class="sd">            Used to control whether or not the highlight effect should be rendered.</span>
+<span class="sd">            </span>
+<span class="sd">        `plot_hillshade` : `bool` (default=`True`)  </span>
+<span class="sd">            Used to control whether or not the hillshade effect should be rendered.</span>
 
 <span class="sd">        `projection` : `string` (default=`&quot;orthographic&quot;`)  </span>
 <span class="sd">            Used to control the map projection of the output world.  </span>
@@ -3140,8 +3244,9 @@ optionally clustered.</p>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_plot_relief</span><span class="p">()</span>
 
-            <span class="k">if</span> <span class="n">plot_lighting</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">plot_highlight</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_plot_highlight</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">plot_hillshade</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_plot_shadows</span><span class="p">()</span>
 
             <span class="k">if</span> <span class="n">plot_points</span><span class="p">:</span>
@@ -3162,7 +3267,8 @@ optionally clustered.</p>
         <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">plot_topography</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">plot_points</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="n">plot_lighting</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">plot_highlight</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">plot_hillshade</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;orthographic&quot;</span><span class="p">,</span>
         <span class="n">planet_name</span><span class="o">=</span><span class="s2">&quot;Planetoids&quot;</span><span class="p">,</span>
         <span class="n">render</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
@@ -3195,8 +3301,11 @@ optionally clustered.</p>
 <span class="sd">        `plot_points` : `bool` (default=`True`)  </span>
 <span class="sd">            Used to control whether or not the seed points should be rendered.</span>
 
-<span class="sd">        `plot_lighting` : `bool` (default=`True`)  </span>
-<span class="sd">            Used to control whether or not the lighting effects should be rendered.</span>
+<span class="sd">        `plot_highlight` : `bool` (default=`True`)  </span>
+<span class="sd">            Used to control whether or not the highlight effect should be rendered.</span>
+<span class="sd">            </span>
+<span class="sd">        `plot_hillshade` : `bool` (default=`True`)  </span>
+<span class="sd">            Used to control whether or not the hillshade effect should be rendered.</span>
 
 <span class="sd">        `projection` : `string` (default=`&quot;orthographic&quot;`)  </span>
 <span class="sd">            Used to control the map projection of the output world.  </span>
@@ -3239,7 +3348,7 @@ optionally clustered.</p>
             <span class="n">rescale_coordinates</span><span class="o">=</span><span class="n">rescale_coordinates</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">terraform</span><span class="p">(</span>
-            <span class="n">plot_topography</span><span class="p">,</span> <span class="n">plot_points</span><span class="p">,</span> <span class="n">plot_lighting</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">planet_name</span><span class="p">,</span> <span class="n">render</span>
+            <span class="n">plot_topography</span><span class="p">,</span> <span class="n">plot_points</span><span class="p">,</span> <span class="n">plot_highlight</span><span class="p">,</span> <span class="n">plot_hillshade</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">planet_name</span><span class="p">,</span> <span class="n">render</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">save</span><span class="p">(</span>
@@ -3265,17 +3374,17 @@ optionally clustered.</p>
 <span class="sd">            </span>
 <span class="sd">        `include_plotlyjs` : `bool` (default=`True`)</span>
 <span class="sd">            Allows a user to include or exclude the plotly.js library in the export.</span>
-<span class="sd">            </span>
+<span class="sd">        </span>
 <span class="sd">        `auto_open` : `bool` (default=`False`)</span>
 <span class="sd">            If True, the `Planetoid` will open in your web browser after saving.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>       
+        <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">,</span>
             <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
             <span class="n">output_type</span><span class="o">=</span><span class="n">output_type</span><span class="p">,</span>
             <span class="n">include_plotlyjs</span><span class="o">=</span><span class="n">include_plotlyjs</span><span class="p">,</span>
-            <span class="n">auto_open</span><span class="o">=</span><span class="n">auto_open</span><span class="p">,</span>
+            <span class="n">auto_open</span><span class="o">=</span><span class="n">auto_open</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_add_salt_and_pepper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gb</span><span class="p">,</span> <span class="n">prob</span><span class="p">):</span>
@@ -3305,7 +3414,7 @@ optionally clustered.</p>
             
   <div class="item">
     <div class="name def" id="planetoids.Planetoid.__init__">
-    <p>def <span class="ident">__init__</span>(</p><p>self, data, y, x, cluster_field=None, ecology=&#39;gist_earth&#39;, random_state=None)</p>
+    <p>def <span class="ident">__init__</span>(</p><p>self, data, y, x, cluster_field=None, ecology=None, random_state=None)</p>
     </div>
     
 
@@ -3316,7 +3425,7 @@ optionally clustered.</p>
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-planetoids.Planetoid.__init__', this);">Show source &equiv;</a></p>
   <div id="source-planetoids.Planetoid.__init__" class="source">
     <div class="codehilite"><pre><span></span><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ecology</span><span class="o">=</span><span class="s2">&quot;gist_earth&quot;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">None</span>
+    <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ecology</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">None</span>
 <span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_y</span> <span class="o">=</span> <span class="bp">None</span>
@@ -3325,6 +3434,7 @@ optionally clustered.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_data_generated</span> <span class="o">=</span> <span class="bp">False</span>
+    
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
     <span class="k">else</span><span class="p">:</span>
@@ -3339,24 +3449,36 @@ optionally clustered.</p>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Y field not in provided DataFrame&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">cluster_field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">cluster_field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span> <span class="o">=</span> <span class="n">cluster_field</span>
+    <span class="k">elif</span> <span class="n">cluster_field</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="s1">&#39;Cluster&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span> <span class="o">=</span> <span class="s1">&#39;Cluster&#39;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cluster field not in provided DataFrame&quot;</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">random_state</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="n">random_state</span>
         <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
         <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
         <span class="n">cv</span><span class="o">.</span><span class="n">setRNGSeed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">random_state</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="k">pass</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">var</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span> <span class="o">=</span> <span class="n">random_state</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+        <span class="n">cv</span><span class="o">.</span><span class="n">setRNGSeed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Please provide an integer value for your random seed&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">ecology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">ListedColormap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
     <span class="c1"># only keep what we need</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[[</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_field</span><span class="p">]]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[[</span><span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_field</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="c1"># set the rest</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_contours</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ocean_colour</span> <span class="o">=</span> <span class="bp">None</span>
@@ -3367,6 +3489,35 @@ optionally clustered.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">_highlight</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_topos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_relief</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+</pre></div>
+
+  </div>
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="planetoids.Planetoid.change_ecology">
+    <p>def <span class="ident">change_ecology</span>(</p><p>self, ecology)</p>
+    </div>
+    
+
+    
+  
+    <div class="desc"><p>Change the <code>Planetoid</code> ecology to one of the named <code>colormap</code> references from <a href="https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html"><strong>matplotlib</strong></a></p></div>
+  <div class="source_cont">
+  <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-planetoids.Planetoid.change_ecology', this);">Show source &equiv;</a></p>
+  <div id="source-planetoids.Planetoid.change_ecology" class="source">
+    <div class="codehilite"><pre><span></span><span class="k">def</span> <span class="nf">change_ecology</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ecology</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Change the `Planetoid` ecology to one of the named `colormap` references from [**matplotlib**](https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">ecology</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ecology</span> <span class="o">=</span> <span class="n">ecology</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 </pre></div>
 
   </div>
@@ -3404,7 +3555,7 @@ optionally clustered.</p>
     <span class="n">topography_levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
     <span class="n">lighting_levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
     <span class="n">relief_density</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+    <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Use the seed data to generate data required to terraform the</span>
 <span class="sd">    `Planetoid`.</span>
@@ -3420,6 +3571,18 @@ optionally clustered.</p>
 <span class="sd">    `rescale_coordinates` : `bool` (default=`True`)  </span>
 <span class="sd">        Used to specify whether or not input seed `x` and `y` data should be rescaled to global geographic coordinates.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">topography_levels</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">topography_levels</span><span class="o">&gt;=</span><span class="mi">5</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 5+ for topography_levels&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lighting_levels</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">lighting_levels</span><span class="o">&gt;=</span><span class="mi">5</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 5+ for lighting_levels&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">relief_density</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">relief_density</span><span class="o">&gt;=</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please provide a positive integer value of 1+ for relief_density&#39;</span><span class="p">)</span>
     <span class="c1"># transform 2d components into pseudo lat/longs</span>
     <span class="k">if</span> <span class="n">rescale_coordinates</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rescale_coordinates</span><span class="p">()</span>
@@ -3436,7 +3599,7 @@ optionally clustered.</p>
             
   <div class="item">
     <div class="name def" id="planetoids.Planetoid.fit_terraform">
-    <p>def <span class="ident">fit_terraform</span>(</p><p>self, topography_levels=20, lighting_levels=20, relief_density=3, rescale_coordinates=True, plot_topography=True, plot_points=True, plot_lighting=True, projection=&#39;orthographic&#39;, planet_name=&#39;Planetoids&#39;, render=True)</p>
+    <p>def <span class="ident">fit_terraform</span>(</p><p>self, topography_levels=20, lighting_levels=20, relief_density=3, rescale_coordinates=True, plot_topography=True, plot_points=True, plot_highlight=True, plot_hillshade=True, projection=&#39;orthographic&#39;, planet_name=&#39;Planetoids&#39;, render=True)</p>
     </div>
     
 
@@ -3460,8 +3623,10 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
     Used to control whether or not the topography should be rendered.</p>
 <p><code>plot_points</code> : <code>bool</code> (default=<code>True</code>)<br />
     Used to control whether or not the seed points should be rendered.</p>
-<p><code>plot_lighting</code> : <code>bool</code> (default=<code>True</code>)<br />
-    Used to control whether or not the lighting effects should be rendered.</p>
+<p><code>plot_highlight</code> : <code>bool</code> (default=<code>True</code>)<br />
+    Used to control whether or not the highlight effect should be rendered.</p>
+<p><code>plot_hillshade</code> : <code>bool</code> (default=<code>True</code>)<br />
+    Used to control whether or not the hillshade effect should be rendered.</p>
 <p><code>projection</code> : <code>string</code> (default=<code>"orthographic"</code>)<br />
     Used to control the map projection of the output world.<br />
     The default <code>orthographic</code> projection produces a 'traditional' 3D globe,
@@ -3504,7 +3669,8 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
     <span class="n">rescale_coordinates</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
     <span class="n">plot_topography</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
     <span class="n">plot_points</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-    <span class="n">plot_lighting</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+    <span class="n">plot_highlight</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+    <span class="n">plot_hillshade</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
     <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;orthographic&quot;</span><span class="p">,</span>
     <span class="n">planet_name</span><span class="o">=</span><span class="s2">&quot;Planetoids&quot;</span><span class="p">,</span>
     <span class="n">render</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
@@ -3527,8 +3693,11 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
 <span class="sd">        Used to control whether or not the topography should be rendered.</span>
 <span class="sd">    `plot_points` : `bool` (default=`True`)  </span>
 <span class="sd">        Used to control whether or not the seed points should be rendered.</span>
-<span class="sd">    `plot_lighting` : `bool` (default=`True`)  </span>
-<span class="sd">        Used to control whether or not the lighting effects should be rendered.</span>
+<span class="sd">    `plot_highlight` : `bool` (default=`True`)  </span>
+<span class="sd">        Used to control whether or not the highlight effect should be rendered.</span>
+<span class="sd">        </span>
+<span class="sd">    `plot_hillshade` : `bool` (default=`True`)  </span>
+<span class="sd">        Used to control whether or not the hillshade effect should be rendered.</span>
 <span class="sd">    `projection` : `string` (default=`&quot;orthographic&quot;`)  </span>
 <span class="sd">        Used to control the map projection of the output world.  </span>
 <span class="sd">        The default `orthographic` projection produces a &#39;traditional&#39; 3D globe,</span>
@@ -3568,7 +3737,7 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
         <span class="n">rescale_coordinates</span><span class="o">=</span><span class="n">rescale_coordinates</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">terraform</span><span class="p">(</span>
-        <span class="n">plot_topography</span><span class="p">,</span> <span class="n">plot_points</span><span class="p">,</span> <span class="n">plot_lighting</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">planet_name</span><span class="p">,</span> <span class="n">render</span>
+        <span class="n">plot_topography</span><span class="p">,</span> <span class="n">plot_points</span><span class="p">,</span> <span class="n">plot_highlight</span><span class="p">,</span> <span class="n">plot_hillshade</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">planet_name</span><span class="p">,</span> <span class="n">render</span>
     <span class="p">)</span>
 </pre></div>
 
@@ -3622,16 +3791,16 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
 <span class="sd">        </span>
 <span class="sd">    `include_plotlyjs` : `bool` (default=`True`)</span>
 <span class="sd">        Allows a user to include or exclude the plotly.js library in the export.</span>
-<span class="sd">        </span>
+<span class="sd">    </span>
 <span class="sd">    `auto_open` : `bool` (default=`False`)</span>
 <span class="sd">        If True, the `Planetoid` will open in your web browser after saving.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>       
+    <span class="n">offline</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span><span class="p">,</span>
         <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
         <span class="n">output_type</span><span class="o">=</span><span class="n">output_type</span><span class="p">,</span>
         <span class="n">include_plotlyjs</span><span class="o">=</span><span class="n">include_plotlyjs</span><span class="p">,</span>
-        <span class="n">auto_open</span><span class="o">=</span><span class="n">auto_open</span><span class="p">,</span>
+        <span class="n">auto_open</span><span class="o">=</span><span class="n">auto_open</span>
     <span class="p">)</span>
 </pre></div>
 
@@ -3643,7 +3812,7 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
             
   <div class="item">
     <div class="name def" id="planetoids.Planetoid.terraform">
-    <p>def <span class="ident">terraform</span>(</p><p>self, plot_topography=True, plot_points=True, plot_lighting=True, projection=&#39;orthographic&#39;, planet_name=&#39;Planetoids&#39;, render=True)</p>
+    <p>def <span class="ident">terraform</span>(</p><p>self, plot_topography=True, plot_points=True, plot_highlight=True, plot_hillshade=True, projection=&#39;orthographic&#39;, planet_name=&#39;Planetoids&#39;, render=True)</p>
     </div>
     
 
@@ -3658,8 +3827,10 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
     Used to control whether or not the topography should be rendered.</p>
 <p><code>plot_points</code> : <code>bool</code> (default=<code>True</code>)<br />
     Used to control whether or not the seed points should be rendered.</p>
-<p><code>plot_lighting</code> : <code>bool</code> (default=<code>True</code>)<br />
-    Used to control whether or not the lighting effects should be rendered.</p>
+<p><code>plot_highlight</code> : <code>bool</code> (default=<code>True</code>)<br />
+    Used to control whether or not the highlight effect should be rendered.</p>
+<p><code>plot_hillshade</code> : <code>bool</code> (default=<code>True</code>)<br />
+    Used to control whether or not the hillshade effect should be rendered.</p>
 <p><code>projection</code> : <code>string</code> (default=<code>"orthographic"</code>)<br />
     Used to control the map projection of the output world.<br />
     The default <code>orthographic</code> projection produces a 'traditional' 3D globe,
@@ -3698,7 +3869,8 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">plot_topography</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
     <span class="n">plot_points</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-    <span class="n">plot_lighting</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+    <span class="n">plot_highlight</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+    <span class="n">plot_hillshade</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
     <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;orthographic&quot;</span><span class="p">,</span>
     <span class="n">planet_name</span><span class="o">=</span><span class="s2">&quot;Planetoids&quot;</span><span class="p">,</span>
     <span class="n">render</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
@@ -3712,8 +3884,11 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
 <span class="sd">        Used to control whether or not the topography should be rendered.</span>
 <span class="sd">    `plot_points` : `bool` (default=`True`)  </span>
 <span class="sd">        Used to control whether or not the seed points should be rendered.</span>
-<span class="sd">    `plot_lighting` : `bool` (default=`True`)  </span>
-<span class="sd">        Used to control whether or not the lighting effects should be rendered.</span>
+<span class="sd">    `plot_highlight` : `bool` (default=`True`)  </span>
+<span class="sd">        Used to control whether or not the highlight effect should be rendered.</span>
+<span class="sd">        </span>
+<span class="sd">    `plot_hillshade` : `bool` (default=`True`)  </span>
+<span class="sd">        Used to control whether or not the hillshade effect should be rendered.</span>
 <span class="sd">    `projection` : `string` (default=`&quot;orthographic&quot;`)  </span>
 <span class="sd">        Used to control the map projection of the output world.  </span>
 <span class="sd">        The default `orthographic` projection produces a &#39;traditional&#39; 3D globe,</span>
@@ -3776,8 +3951,9 @@ The terraformed world is stored in the <code>fig</code> property of the <code>Pl
         <span class="k">if</span> <span class="n">plot_topography</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_plot_contours</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_plot_relief</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">plot_lighting</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">plot_highlight</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_plot_highlight</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">plot_hillshade</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_plot_shadows</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">plot_points</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_plot_clustered_points</span><span class="p">()</span>
@@ -3844,8 +4020,8 @@ to generate <code>land masses</code> independently.</p></div>
 
             
   
-    <div class="desc"><p>Optional <code>integer</code> to seed the random number generators for
-reproducibility if required.</p></div>
+    <div class="desc"><p>Optional <code>integer</code> to seed the random number generators.
+By default, a random seed is calculated based on the provided seed data on your behalf so reproducibility is guaranteed.</p></div>
   <div class="source_cont">
 </div>
 
