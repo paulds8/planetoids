@@ -54,11 +54,6 @@ Planetoids depends on:
 + and their related dependencies like numpy and scipy
  
 <h3>Install Options</h3>
-Conda:
-
-```python
-...
-```
 
 PyPI:
 
