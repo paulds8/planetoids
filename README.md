@@ -18,14 +18,11 @@ Planetoids is a high level Python API for generating interactive, procedurally g
 Currently, Planetoids is able to terraform a planet from two-dimensional data that has an optional cluster attribute. It's still very new and will be growing in capabilities, but for now the library can achieve the following when terraforming a new world:
 
 + generates somewhere in _space_ to render your creation
-  
 + generates an ecology based on input data statistics
-  
 + generates land masses
    + these land masses have 	
       + topographic detail (contours) 	
       + relief detail (gradients)
-
 + generates lighting effects in the form of a hillshade
   
 
@@ -49,17 +46,11 @@ For full working examples, check out the interactive online [demo notebooks](htt
 Planetoids depends on:
 
 + pandas
-
 + sklearn
-
 + shapely
-
 + pyproj
-
 + plotly
-
 + opencv
-
 + and their related dependencies like numpy and scipy
  
 <h3>Install Options</h3>
