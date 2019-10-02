@@ -17,16 +17,16 @@ Planetoids is a high level Python API for generating interactive, procedurally g
 <h2>What does it do?</h2>
 Currently, Planetoids is able to terraform a planet from two-dimensional data that has an optional cluster attribute. It's still very new and will be growing in capabilities, but for now the library can achieve the following when terraforming a new world:
 
-  + generates somewhere in _space_ to render your creation
++ generates somewhere in _space_ to render your creation
   
-  + generates an ecology based on input data statistics
++ generates an ecology based on input data statistics
   
-  + generates land masses
-	+ these land masses have 	
-		+ topographic detail (contours) 	
-		+ relief detail (gradients)
-		
-  + generates lighting effects in the form of a hillshade
++ generates land masses
+   + these land masses have 	
+      + topographic detail (contours) 	
+      + relief detail (gradients)
+
++ generates lighting effects in the form of a hillshade
   
 
 Your terraformed world can be rendered using many different map projections for different effects.
@@ -48,13 +48,19 @@ For full working examples, check out the interactive online [demo notebooks](htt
 <h2>Installing</h2>
 Planetoids depends on:
 
-  + pandas
-  + sklearn
-  + shapely
-  + pyproj
-  + plotly
-  + opencv
-  + and their related dependencies like numpy and scipy
++ pandas
+
++ sklearn
+
++ shapely
+
++ pyproj
+
++ plotly
+
++ opencv
+
++ and their related dependencies like numpy and scipy
  
 <h3>Install Options</h3>
 Conda:
@@ -81,8 +87,8 @@ pip install -r requirements.txt
 
 If you're on Windows and installing from PyPI or manually, you may need to install the following packages from the Windows binaries for your Python version here: 
 
-  + [shapely](https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely)
-  + [opencv](https://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv)
++ [shapely](https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely)
++ [opencv](https://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv)
 
 <h2>Documentation</h2>
 
