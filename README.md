@@ -79,6 +79,39 @@ If you're on Windows and installing from PyPI or manually, you may need to insta
 + [shapely](https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely)
 + [opencv](https://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv)
 
+For use in JupyterLab:
+
+In order to get planetoids rendering inline within JupyterLab you will need to ensure you have `ipywidgets` installed as well as the following extensions:
+
+```bash
+# Avoid "JavaScript heap out of memory" errors during extension installation
+# (OS X/Linux)
+export NODE_OPTIONS=--max-old-space-size=4096
+# (Windows)
+set NODE_OPTIONS=--max-old-space-size=4096
+
+# Jupyter widgets extension
+jupyter labextension install @jupyter-widgets/jupyterlab-manager@1.0 --no-build
+
+# FigureWidget support
+jupyter labextension install plotlywidget@1.1.1 --no-build
+
+# and jupyterlab renderer support
+jupyter labextension install jupyterlab-plotly@1.1.2 --no-build
+
+# JupyterLab chart editor support (optional)
+jupyter labextension install jupyterlab-chart-editor@1.2 --no-build
+
+# Build extensions (must be done to activate extensions since --no-build is used above)
+jupyter lab build
+
+# Unset NODE_OPTIONS environment variable
+# (OS X/Linux)
+unset NODE_OPTIONS
+# (Windows)
+set NODE_OPTIONS=
+```
+
 <h2>Documentation</h2>
 
 This library is super new, so there's not a ton of documentation to come by _just yet_, but the public-facing API is fully documented [here](https://paulds8.github.io/planetoids/planetoids.m).
