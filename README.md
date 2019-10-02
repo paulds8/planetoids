@@ -5,11 +5,14 @@
   Planetoids
 </h1>
 
-_Procedurally generated worlds._
+Procedurally generated worlds.
 
 ![Build Status](https://img.shields.io/travis/com/paulds8/planetoids)
 ![Coverage Status](https://img.shields.io/codecov/c/github/paulds8/planetoids)
 ![Codacy Status](https://img.shields.io/codacy/grade/77b39d19f4c54647820cc7b7d22e2f41)
+![Version](https://img.shields.io/pypi/v/planetoids)
+![Status](https://img.shields.io/pypi/status/planetoids)
+![License](https://img.shields.io/pypi/l/planetoids)
 
 <h2>What is it?</h2>
 Planetoids is a high level Python API for generating interactive, procedurally generated worlds from data in a pandas DataFrame.
@@ -20,10 +23,11 @@ Currently, Planetoids is able to terraform a planet from two-dimensional data th
 + generates somewhere in _space_ to render your creation
 + generates an ecology based on input data statistics
 + generates land masses
-	+ these land masses have 
-		+ topographic detail (contours) 
-		+ relief detail (gradients)
+   + these land masses have 	
+      + topographic detail (contours) 	
+      + relief detail (gradients)
 + generates lighting effects in the form of a hillshade
+  
 
 Your terraformed world can be rendered using many different map projections for different effects.
 
@@ -44,36 +48,69 @@ For full working examples, check out the interactive online [demo notebooks](htt
 <h2>Installing</h2>
 Planetoids depends on:
 
- - pandas
- - sklearn
- - shapely
- - pyproj
- - plotly
- - opencv
- - and their related dependencies like numpy and scipy
++ pandas
++ sklearn
++ shapely
++ pyproj
++ plotly
++ opencv
++ and their related dependencies like numpy and scipy
  
 <h3>Install Options</h3>
-Conda:
-
-    ```...```
 
 PyPI:
 
-    ```...```
+```python
+pip install planetoids
+```
 
 Manual:
 
-```
-    wget https://github.com/paulds8/planetoids/archive/master.zip
-    unzip master.zip
-    rm master.zip
-    cd planetoids
-    pip install -r requirements.txt
+```bash
+wget https://github.com/paulds8/planetoids/archive/master.zip
+unzip master.zip
+rm master.zip
+cd planetoids
+pip install -r requirements.txt
 ```
 
-If you're on Windows and installing from PyPI or Manually, you will probably need to install the following dependencies: 
+If you're on Windows and installing from PyPI or manually, you may need to install the following packages from the Windows binaries for your Python version here: 
 
-```...```
++ [shapely](https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely)
++ [opencv](https://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv)
+
+For use in JupyterLab:
+
+In order to get planetoids rendering inline within JupyterLab you will need to ensure you have `ipywidgets` installed as well as the following extensions:
+
+```bash
+# Avoid "JavaScript heap out of memory" errors during extension installation
+# (OS X/Linux)
+export NODE_OPTIONS=--max-old-space-size=4096
+# (Windows)
+set NODE_OPTIONS=--max-old-space-size=4096
+
+# Jupyter widgets extension
+jupyter labextension install @jupyter-widgets/jupyterlab-manager@1.0 --no-build
+
+# FigureWidget support
+jupyter labextension install plotlywidget@1.1.1 --no-build
+
+# and jupyterlab renderer support
+jupyter labextension install jupyterlab-plotly@1.1.2 --no-build
+
+# JupyterLab chart editor support (optional)
+jupyter labextension install jupyterlab-chart-editor@1.2 --no-build
+
+# Build extensions (must be done to activate extensions since --no-build is used above)
+jupyter lab build
+
+# Unset NODE_OPTIONS environment variable
+# (OS X/Linux)
+unset NODE_OPTIONS
+# (Windows)
+set NODE_OPTIONS=
+```
 
 <h2>Documentation</h2>
 
